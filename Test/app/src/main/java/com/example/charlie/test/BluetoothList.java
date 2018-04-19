@@ -3,6 +3,7 @@ package com.example.charlie.test;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -21,14 +22,17 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.UUID;
 
 public class BluetoothList extends AppCompatActivity {
     private ListView BTListView;
     private ArrayAdapter<String> listAdapter, listSubItemAdapter;
     BluetoothAdapter btAdapter;
+    BluetoothSocket btSocket;
     Set<BluetoothDevice> pairedDevices;
     ArrayList<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
     ArrayList<String> deviceNames = new ArrayList<String>();
@@ -41,6 +45,8 @@ public class BluetoothList extends AppCompatActivity {
     int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 41568;
     int REQUEST_ENABLE_BT = 777;
     private static final String TAG = "BluetoothListActivity";
+    String SERVER_UUID_STRING = "94f39d29-7d6d-435d-973b-fba39e49d4ee";
+    UUID SERVER_UUID = UUID.fromString(SERVER_UUID_STRING);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,7 +170,26 @@ public class BluetoothList extends AppCompatActivity {
                 for (i = 0; i < uuids.length; i++){
                     Log.d(TAG, uuids[i].toString());
                 }
-                //selectedDevice.createInsecureRfcommSocketToServiceRecord(MY_UUID);
+
+                try {
+                    btSocket = selectedDevice.createInsecureRfcommSocketToServiceRecord(SERVER_UUID);
+                } catch (IOException e) {
+                    btSocket = null;
+                }
+
+                try{
+                    btSocket.connect();
+                } catch (IOException e) {
+                    String tempStr = "Failed when connecting socket to device";
+                    Log.w(TAG, tempStr);
+                }
+
+                if (btSocket.isConnected()){
+                    Log.d(TAG, "BT Socket connected successfully");
+                }
+                else{
+                    Log.d(TAG, "BT Socket connecting failed");
+                }
             }
         });
     }
