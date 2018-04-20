@@ -1,5 +1,6 @@
 package com.example.charlie.test;
 
+import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
@@ -36,17 +37,17 @@ public class MainActivity extends AppCompatActivity {
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        // Dope ass title
-        // FIXME: getSupportActionBar can return NULL
-        getSupportActionBar().setTitle("Swagger Central");
+        if(toolbar != null) {
+            // Dope title
+            toolbar.setTitle("Swagger Central");
+        }
 
         fab = (FloatingActionButton)  findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             View.OnClickListener snackbarOnClick = new View.OnClickListener(){
                 @Override
                 public void onClick(View view) {
-                    String tempStr = "Good jorb";
-                    tv.setText(tempStr);
+                    startBluetoothListActivity();
                 }
             };
 
@@ -70,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
         // Start List activity
         // FIXME: This don't work
         Intent intent = new Intent(this, BluetoothList.class);
-        startActivity(intent);
+        startActivityForResult(intent, CONNECT_TO_BT_DEVICE);
     }
 
     @Override

@@ -30,7 +30,8 @@ import java.util.UUID;
 
 public class BluetoothList extends AppCompatActivity {
     private ListView BTListView;
-    private ArrayAdapter<String> listAdapter, listSubItemAdapter;
+    private ArrayAdapter<String> listAdapter;
+    SingletonBluetoothData sBTData = SingletonBluetoothData.getInstance();
     BluetoothAdapter btAdapter;
     BluetoothSocket btSocket;
     Set<BluetoothDevice> pairedDevices;
@@ -38,7 +39,6 @@ public class BluetoothList extends AppCompatActivity {
     ArrayList<String> deviceNames = new ArrayList<String>();
     ArrayList<String> deviceAddresses = new ArrayList<String>();
     TextView statusTV;
-    FloatingActionButton fab;
     Button bottomLeftButton, bottomRightButton;
 
     // Constants. This seems like the wrong place
@@ -61,18 +61,6 @@ public class BluetoothList extends AppCompatActivity {
         // Find status notification text view
         statusTV = (TextView) findViewById(R.id.statusTextView);
         BTListView = (ListView) findViewById( R.id.listview );
-
-        // Configure FAB
-        fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
-        statusTV.setText(String.valueOf(deviceNames.size()));
 
         // Configure Buttons
         bottomLeftButton = (Button) findViewById(R.id.bottomLeftButton);
@@ -116,6 +104,7 @@ public class BluetoothList extends AppCompatActivity {
 
         // Setup Bluetooth
         btAdapter = enableBluetooth(statusTV);
+        sBTData.setBtAdapter(btAdapter);
         if (btAdapter == null) {
             Log.e(TAG, "Failed to enable bluetooth adapter");
         }
@@ -166,29 +155,65 @@ public class BluetoothList extends AppCompatActivity {
 
                 BluetoothDevice selectedDevice = discoveredDevices.get(i);
                 ParcelUuid uuids[] = selectedDevice.getUuids();
-                Log.d(TAG, "UUIDS:");
                 for (i = 0; i < uuids.length; i++){
-                    Log.d(TAG, uuids[i].toString());
+                    if (uuids[i].getUuid() == SERVER_UUID) break;
+                }
+
+                // FIXME: This is always triggered for some reason, even if UUID is advertised correctly
+                /*if (i == uuids.length){
+                    // Did not find desired UUID advertised by this device - Not hosting desired service
+                    String tempStr = "Selected device has incorrect UUID";
+                    Log.w(TAG, tempStr);
+                    statusTV.setText(tempStr);
+                    return;
+                }*/
+
+                // Check if open BT Socket already exists. Close it if so.
+                // TODO: Add some logging and make this not broken
+                if (sBTData.getBtSocket() != null){
+                    try{
+                        sBTData.getBtSocket().close();
+                    } catch (IOException e) {
+                        sBTData.setBtSocket(null);
+                    }
                 }
 
                 try {
+                    // Try to create Insecure RFCOMM socket to selected device on SERVER_UUID
                     btSocket = selectedDevice.createInsecureRfcommSocketToServiceRecord(SERVER_UUID);
                 } catch (IOException e) {
                     btSocket = null;
                 }
 
+                if (btSocket == null){
+                    String tempStr = "Failed creating RFCOMM Socket to device: ";
+                    tempStr = tempStr.concat(selectedDevice.getAddress());
+                    Log.w(TAG, tempStr);
+                    tempStr = "BT socket creation failed";
+                    statusTV.setText(tempStr);
+                    return;
+                }
+
                 try{
                     btSocket.connect();
                 } catch (IOException e) {
-                    String tempStr = "Failed when connecting socket to device";
+                    String tempStr = "Failed when connecting socket to device: ";
+                    tempStr = tempStr.concat(selectedDevice.getAddress());
                     Log.w(TAG, tempStr);
+                    tempStr = "BT socket connection failed";
+                    statusTV.setText(tempStr);
+                    return;
                 }
 
                 if (btSocket.isConnected()){
+                    // If we successfully connected, set BT Socket and return to Main Activity
+                    sBTData.setBtSocket(btSocket);
                     Log.d(TAG, "BT Socket connected successfully");
+                    finish();
                 }
                 else{
                     Log.d(TAG, "BT Socket connecting failed");
+                    statusTV.setText("Failed to connect.");
                 }
             }
         });
@@ -238,6 +263,44 @@ public class BluetoothList extends AppCompatActivity {
         }
     };
 
+    // If bluetooth device available, start activity to enable it
+    // I can't make this a standalone function because JAVA is disgusting.
+    public BluetoothAdapter enableBluetooth(TextView tv) {
+        BluetoothAdapter adapter;
+        Log.d(TAG, "enableBluetooth() called.");
+        // I don't think this null check even works because Android programming makes no sense
+        if (tv != null) {
+            tv.setText("Trying to enable BT...");
+        }
+
+        adapter = BluetoothAdapter.getDefaultAdapter();
+        if (adapter == null) {
+            // No bluetooth adapter found
+            Log.w(TAG, "No bluetooth adapter found.");
+            if (tv != null) {
+                tv.setText("No BT adapter found.");
+            }
+            return null;
+        }
+
+        if (!adapter.isEnabled()) {
+            // Enable adapter
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            if (tv != null) {
+                tv.setText("Starting activity to enable BT...");
+            }
+            Log.d(TAG, "Starting activity for result: BluetoothAdapter.ACTION_REQUEST_ENABLE");
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        } else {
+            Log.d(TAG, "Bluetooth already enabled.");
+            if (tv != null) {
+                tv.setText("Bluetooth enabled.");
+            }
+        }
+
+        return adapter;
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_ENABLE_BT){
@@ -256,44 +319,6 @@ public class BluetoothList extends AppCompatActivity {
         }
     }
 
-    // If bluetooth device available, start activity to enable it
-    public BluetoothAdapter enableBluetooth(TextView tv) {
-        Log.d(TAG, "enableBluetooth() called.");
-        // I don't think this null check even works because Android programming makes no sense
-        if (tv != null) {
-            tv.setText("Trying to enable BT...");
-        }
-
-        btAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (btAdapter == null){
-            // No bluetooth adapter found
-            Log.w(TAG, "No bluetooth adapter found.");
-            if (tv != null) {
-                tv.setText("No BT adapter found.");
-            }
-            return null;
-        }
-
-        if (!btAdapter.isEnabled()) {
-            // Enable adapter
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            if (tv != null) {
-                tv.setText("Starting activity to enable BT...");
-            }
-            Log.d(TAG, "Starting activity for result: BluetoothAdapter.ACTION_REQUEST_ENABLE");
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-        else{
-            Log.d(TAG, "Bluetooth already enabled.");
-            if (tv != null) {
-                tv.setText("Bluetooth enabled.");
-            }
-        }
-
-        return btAdapter;
-    }
-
-
     public ArrayList<String> stringifyBtDevices(Set<BluetoothDevice> devices) {
         ArrayList<String> deviceNames = new ArrayList<String>();
 
@@ -311,3 +336,5 @@ public class BluetoothList extends AppCompatActivity {
         return deviceNames;
     }
 }
+
+
