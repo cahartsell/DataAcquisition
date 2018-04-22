@@ -62,28 +62,10 @@ public class BluetoothList extends AppCompatActivity {
         statusTV = (TextView) findViewById(R.id.statusTextView);
         BTListView = (ListView) findViewById( R.id.listview );
 
-        // Configure Buttons
-        bottomLeftButton = (Button) findViewById(R.id.bottomLeftButton);
+        // Configure refresh button
         bottomRightButton = (Button) findViewById(R.id.bottomRightButton);
-
-        String blText = "Pair New Device";
         String brText = "Refresh List";
-        bottomLeftButton.setText(blText);
         bottomRightButton.setText(brText);
-
-        bottomLeftButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                /*
-                Intent enableBtIntent = new Intent(BluetoothAdapter.);
-                String tmp = "Pairing new device...";
-                statusTV.setText(tmp);
-                Log.d(TAG, "Starting activity for result: BluetoothAdapter.ACTION_REQUEST_ENABLE");
-                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-                */
-            }
-        });
-
         bottomRightButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -154,10 +136,14 @@ public class BluetoothList extends AppCompatActivity {
                 } */
 
                 BluetoothDevice selectedDevice = discoveredDevices.get(i);
-                ParcelUuid uuids[] = selectedDevice.getUuids();
-                for (i = 0; i < uuids.length; i++){
-                    if (uuids[i].getUuid() == SERVER_UUID) break;
+                /*ParcelUuid uuids[] = selectedDevice.getUuids();
+                if(uuids == null) {
+                    Log.w(TAG, "No UUIDs found on selected device.");
+                    return;
                 }
+                for (i = 0; i < uuids.length; i++) {
+                    if (uuids[i].getUuid() == SERVER_UUID) break;
+                }*/
 
                 // FIXME: This is always triggered for some reason, even if UUID is advertised correctly
                 /*if (i == uuids.length){
