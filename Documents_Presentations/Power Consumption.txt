@@ -1,0 +1,9 @@
+Brake Light: 100 mA
+Reverse Light: 100mA
+Reverse Alarm: ~60mA
+Arduino: est. 25mA running code
+Screen: 15 mA typical
+SD card logger: 6mA when writing/reading
+
+
+Other sensors in 500µA or less range

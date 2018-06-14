@@ -1,0 +1,47 @@
+Baja14_v2
+	-Rewrote previous year code to be more efficient
+	-Working Speedometer
+
+
+Baja14_v2.1
+	-Changed Speedometer from numerical readout to sliding bar gauge
+	-Added displayMPH function (seperated display functionality from main loop)
+	-Modified some areas for easier readability/compactness
+
+
+Baja_v2.2
+	-Added Accelerometer and SD Logger functionality
+	-Added additional comments and section divisions
+	-Changed I/O pin declarations from 'int' to 'static int'
+		-using #define on I/O pins caused errors when compiling
+
+	-Added Engine RPM functionality
+	-Renamed from Baja14_v2.2 to Baja_v2.2
+	-Changed speed, engineRPM, and interrupt variables from unsigned int to unsigned long integer variables
+		-Fixed out-of-range bug in Engine RPM calculation by using long int
+
+	-Used fixed point math in place of floating point calculations for speed and RPM
+		-Should improve execution speed (& possibly reliability)
+		-scaled Speed and RPM variables are upscaled by a factor of 1000
+
+
+Baja_V2.3
+	-Commented out Accelerometer Code section since it is not currently used
+	-Revised initial Serial messages
+	-Added logData function to organize data logging functionality into one place
+		-Removed various Serial.print() statements previously used troughout program to log data
+
+Baja_V2.4
+	-Added display functions:
+		-displayRPM function (sliding bar for Engine RPM similar to displayMPH)
+		-displayPlainText function to display Speed and RPM 
+	-Added ability to switch between display modes by pressing LEFT or RIGHT LCD buttons
+
+Baja_V2.3_TEST
+	-Revised axle and engine RPM calculation methods
+	
+	
+========= Created git repo =========
+
+Started from Baja_V2.4
+	- Tagged as version 0.1.0
