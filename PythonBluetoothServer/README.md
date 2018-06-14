@@ -1,0 +1,1 @@
+Simple Python bluetooth server for testing android app (without Arduino bluetooth)
