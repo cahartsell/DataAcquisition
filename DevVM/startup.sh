@@ -6,10 +6,13 @@ apt-get -y install git cmake lib32z1 g++ lib32stdc++6
 echo -e "vagrant\nvagrant\n" | passwd vagrant
 
 # Make folders and clone data aquisition and raspberrypi tools repos
-if [ ! -d "/home/vagrant/data-aquisition/" ]; then
-	mkdir /home/vagrant/data-aquisition/
-	git clone https://github.com/cahartsell/DataAquisition.git /home/vagrant/data-aquisition
-	chown -R vagrant:vagrant /home/vagrant/data-aquisition/
+if [ ! -d "/home/vagrant/data-acquisition/" ]; then
+	mkdir /home/vagrant/data-acquisition/
+	git clone https://github.com/cahartsell/DataAcquisition.git /home/vagrant/data-acquisition
+	chown -R vagrant:vagrant /home/vagrant/data-acquisition/
+	cd /home/vagrant/data-acquisition/
+	git submodule init
+	git submodule update
 fi
 
 if [ ! -d "/home/vagrant/raspberrypi/" ]; then
@@ -34,3 +37,14 @@ SET(CMAKE_FIND_ROOT_PATH /home/vagrant/raspberrypi/rootfs)
 SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" > /home/vagrant/raspberrypi/pi.cmake
+
+# Build wiringPi shared library for cross-compilation to raspberrypi
+if [ -d "/home/vagrant/data-acquisition/lib/wiringPi/wiringPi/" ]; then
+  cd /home/vagrant/data-acquisition/lib/wiringPi/wiringPi/
+  # delete any old build files
+  rm libwiringPi*
+  rm *.o
+  # build with cross compiler and make symbolic link (w/o version number)
+  make CC=/home/vagrant/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-gcc
+  ln -s libwiringPi.so.* libwiringPi.so
+fi
