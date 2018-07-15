@@ -1,13 +1,23 @@
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 3.0)
 project(DAS)
 
 # Set version number
 set (DAS_VERSION_MAJOR 0)
 set (DAS_VERSION_MINOR 1)
 
+# This is wrong. Should be fixed
 include_directories("lib/" "lib/wiringPi/wiringPi")
+LINK_DIRECTORIES("lib/wiringPi/wiringPi")
 
+#SET(CMAKE_C_FLAGS "-I/usr/local/include -L/usr/local/lib")
+
+# Main executable
 add_executable(DAS src/main.cpp)
-
 # Component test executables
 add_executable(GPIO_test component_tests/raspberrypi_GPIO/gpio_test.c)
+add_executable(GPIO_speed_test component_tests/raspberrypi_GPIO/speed.c)
+
+# Set libraries to link
+#TARGET_LINK_LIBRARIES(DAS wiringPi)
+TARGET_LINK_LIBRARIES(GPIO_test wiringPi)
+TARGET_LINK_LIBRARIES(GPIO_speed_test wiringPi)

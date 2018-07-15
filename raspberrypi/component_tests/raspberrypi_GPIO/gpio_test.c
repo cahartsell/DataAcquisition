@@ -6,11 +6,11 @@
 #include <wiringPi.h>
 #include <stdio.h>
 #include <time.h>
-#include <mem.h>
+#include <string.h>
 #include <stdlib.h>
 
 #define LOOP_COUNT 100
-#define WRITE_STABILIZE_DELAY_MICRO_S 1000
+#define WRITE_STABILIZE_DELAY_NANO_S 100000
 #define WRITE_PIN 0
 #define READ_PIN 1
 
@@ -33,7 +33,7 @@ int main (void)
 
     // Fill timespec
     // This assumes stabilize delay is always less than 1 second
-    tv.tv_nsec = WRITE_STABILIZE_DELAY_MICRO_S * 1000;
+    tv.tv_nsec = WRITE_STABILIZE_DELAY_NANO_S;
     tv.tv_sec = 0;
 
     // Write random value to one pin, wait, then read the value at another pin.
@@ -47,9 +47,9 @@ int main (void)
     }
 
     // Print results
-    printf("Wrote | Read");
+    printf("Wrote | Read\n");
     for(i = 0; i < LOOP_COUNT; i++) {
-        printf("%d\t%d", wrote[i], read[i]);
+        printf("%d\t%d\n", wrote[i], read[i]);
     }
 
     return 0;
