@@ -5,6 +5,9 @@ project(DAS)
 set (DAS_VERSION_MAJOR 0)
 set (DAS_VERSION_MINOR 1)
 
-include_directories("libs/")
+include_directories("lib/" "lib/wiringPi/wiringPi")
 
 add_executable(DAS src/main.cpp)
+
+# Component test executables
+add_executable(GPIO_test component_tests/raspberrypi_GPIO/gpio_test.c)
