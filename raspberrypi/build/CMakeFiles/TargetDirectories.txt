@@ -1,0 +1,3 @@
+/home/vagrant/data-aquisition/raspberrypi/build/CMakeFiles/rebuild_cache.dir
+/home/vagrant/data-aquisition/raspberrypi/build/CMakeFiles/edit_cache.dir
+/home/vagrant/data-aquisition/raspberrypi/build/CMakeFiles/DAS.dir
