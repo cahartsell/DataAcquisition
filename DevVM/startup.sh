@@ -39,8 +39,8 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" > /home/vagrant/raspberrypi/pi.cmake
 
 # Build wiringPi shared library for cross-compilation to raspberrypi
-if [ -d "/home/vagrant/data-acquisition/lib/wiringPi/wiringPi/" ]; then
-  cd /home/vagrant/data-acquisition/lib/wiringPi/wiringPi/
+if [ -d "/home/vagrant/data-acquisition/deps/wiringPi/wiringPi/" ]; then
+  cd /home/vagrant/data-acquisition/deps/wiringPi/wiringPi/
   # delete any old build files
   rm libwiringPi*
   rm *.o

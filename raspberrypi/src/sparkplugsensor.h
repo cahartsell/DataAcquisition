@@ -15,6 +15,7 @@ class SparkPlugSensor: public SensorBase {
 public:
     // Public functions
     SparkPlugSensor(Logger *_logger, int pin);
+    ~SparkPlugSensor();
     bool setup();   // overrides base class
     void isr(void);
     bool update();  // overrides base class

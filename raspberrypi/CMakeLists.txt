@@ -6,8 +6,8 @@ set (DAS_VERSION_MAJOR 0)
 set (DAS_VERSION_MINOR 1)
 
 # This is wrong. Should be fixed
-include_directories("include/" "deps/wiringPi/wiringPi")
-LINK_DIRECTORIES("deps/wiringPi/wiringPi")
+include_directories("include/" "deps/wiringPi/wiringPi/")
+LINK_DIRECTORIES("deps/wiringPi/wiringPi/")
 
 #SET(CMAKE_C_FLAGS "-I/usr/local/include -L/usr/local/lib")
 
