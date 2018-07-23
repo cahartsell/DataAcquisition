@@ -1,3 +1,2 @@
 
-This directory is intended for the project specific (private) libraries.
-Place each library into a subdirectory.
+This directory is intended for any shared or static libraries used by the project.
