@@ -7,7 +7,6 @@
 // Include every file ever made
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <io.h>
 #include <pthread.h>
 #include <ctime>
 #include <cstdlib>
@@ -90,7 +89,7 @@ int main (int argc, char *argv[])
 // https://stackoverflow.com/questions/997946/how-to-get-current-time-and-date-in-c
 // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
 const std::string getCurrentDateTime() {
-  time_t        now = time(nullptr);
+  time_t        now = time(NULL);
   struct tm     tstruct;
   char          buf[80];
   std::string   result;

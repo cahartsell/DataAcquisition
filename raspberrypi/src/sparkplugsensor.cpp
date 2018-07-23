@@ -16,17 +16,15 @@ SparkPlugSensor::SparkPlugSensor(Logger *_logger, int pin) {
     inputPin = pin;
 
     // Create mutex - default settings
-    int result = pthread_mutex_init(&lock, nullptr);
+    int result = pthread_mutex_init(&lock, NULL);
     if (result != 0) {
-        lock = nullptr;
+        this->log("Failed to create pthread mutex");
     }
 }
 
 SparkPlugSensor::~SparkPlugSensor() {
-    // Destroy mutex if it exists
-    if (lock != nullptr) {
-        pthread_mutex_destroy(&lock);
-    }
+    // Destroy mutex
+    pthread_mutex_destroy(&lock);
 }
 
 bool SparkPlugSensor::setup() {
@@ -60,7 +58,7 @@ bool SparkPlugSensor::update() {
 
 // Wrapper function for using logger. Checks if logger exists and prepends LOG_PREFIX to any message.
 bool SparkPlugSensor::log(std::string _msg) {
-    if(logger != nullptr) {
+    if(logger != NULL) {
         std::string msg = LOG_PREFIX;
         msg.append(_msg);
 
