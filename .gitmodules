@@ -1,3 +1,0 @@
-[submodule "raspberrypi/lib/wiringPi"]
-	path = raspberrypi/lib/wiringPi
-	url = git://git.drogon.net/wiringPi
