@@ -20,6 +20,9 @@ SparkPlugSensor::SparkPlugSensor(Logger *_logger, int pin) {
     if (result != 0) {
         lock = nullptr;
     }
+
+    // Set this as the sole instance of SparkPlugSensor
+    instance = this;
 }
 
 SparkPlugSensor::~SparkPlugSensor() {
@@ -29,33 +32,33 @@ SparkPlugSensor::~SparkPlugSensor() {
     }
 }
 
-bool SparkPlugSensor::setup() {
+int SparkPlugSensor::setup() {
     // Setup pin mode and ISR function
     pinMode(inputPin, INPUT);
-    wiringPiISR(inputPin, INT_EDGE_FALLING, isr);
+    wiringPiISR(inputPin, INT_EDGE_FALLING, _isr);
 }
 
 void SparkPlugSensor::isr(void) {
     // MUTEX inside an ISR is not the greatest idea, but don't know how to disable interrupts with Linux/WiringPi
-    int result;
-
     // Try to lock mutex, but don't wait
     // FIXME: Using trylock means a pulse may occasionally be missed. Possibly short-delay timed lock instead?
-    result = pthread_mutex_trylock(&lock);
-    if (result != 0) {
+    if (pthread_mutex_trylock(&lock) != 0) {
         return;
     }
 
     // Update counter and store time of update
+    // FIXME: dont use clock_gettime in ISR
     cnt++;
     clock_gettime(CLOCK_MONOTONIC, &endTime);
     pthread_mutex_unlock(&lock);
 }
 
-bool SparkPlugSensor::update() {
+int SparkPlugSensor::update() {
     if (cnt > MIN_UPDATE_CNT) {
 
     }
+
+    return true;
 }
 
 // Wrapper function for using logger. Checks if logger exists and prepends LOG_PREFIX to any message.
@@ -68,4 +71,8 @@ bool SparkPlugSensor::log(std::string _msg) {
     } else {
         return false;
     }
+}
+
+static void SparkPlugSensor::_isr(void) {
+    instance->isr;
 }

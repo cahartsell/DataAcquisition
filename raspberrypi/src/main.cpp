@@ -75,7 +75,10 @@ int main (int argc, char *argv[])
   // FIXME: Some way to shutdown cleanly would be good
   timespec lastTime, curTime;
   while (true) {
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
+      // Update all sensors
+      for (i = 0; i < sensorCnt; i++) {
+          sensors[i]->update();
+      }
   }
 
   // Cleanup sensor classes

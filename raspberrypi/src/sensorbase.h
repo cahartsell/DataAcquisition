@@ -20,8 +20,8 @@ public:
     SensorBase(Logger *_logger, int pin_number); // Single pin constructor
     SensorBase(Logger *_logger, std::vector<int> pins); // Multiple pin constructor
 
-    virtual bool setup();
-    virtual bool update();
+    virtual int setup();
+    virtual int update();
 
 protected:
     Logger *logger;

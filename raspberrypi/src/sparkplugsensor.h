@@ -9,6 +9,8 @@
 #define MIN_RPM                 600
 #define UPDATE_CNT_TIMEOUT_MS   (60000 / MIN_RPM)  // Allowed time between pulses before considering the engine off
 
+#include <time.h>
+#include <pthread.h>
 #include "sensorbase.h"
 
 class SparkPlugSensor: public SensorBase {
@@ -16,9 +18,15 @@ public:
     // Public functions
     SparkPlugSensor(Logger *_logger, int pin);
     ~SparkPlugSensor();
-    bool setup();   // overrides base class
-    void isr(void);
-    bool update();  // overrides base class
+    int setup();   // overrides base class
+    void isr();
+    int update();  // overrides base class
+
+    // Black magic ISR trickery
+    // This limits class to only one instance which is annoying.
+    // TODO: Add vector of instances to solve one instance limitation
+    static SparkPlugSensor *instance;
+    static void _isr();
 
 private:
     // Private functions
