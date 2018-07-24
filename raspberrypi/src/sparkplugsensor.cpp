@@ -71,6 +71,6 @@ bool SparkPlugSensor::log(std::string _msg) {
     }
 }
 
-static void SparkPlugSensor::_isr(void) {
-    instance->isr;
+void SparkPlugSensor::_isr() {
+    instance->isr();
 }
