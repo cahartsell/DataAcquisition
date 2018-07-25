@@ -2,7 +2,7 @@
 // Created by Charlie on 7/21/2018.
 //
 
-#define LOG_PREFIX  "SPARK_PLUG_SENSOR: "
+#define SPARKPLUGSENSOR_LOG_PREFIX  "SPARK_PLUG_SENSOR: "
 
 #include <pthread.h>
 #include <time.h>
@@ -45,9 +45,12 @@ void SparkPlugSensor::isr(void) {
     }
 
     // Update counter and store time of update
-    // FIXME: dont use clock_gettime in ISR
+    // FIXME: don't use clock_gettime in ISR
     cnt++;
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    timespec tv;
+    clock_gettime(CLOCK_MONOTONIC, tv);
+    endTime.tv_sec = tv.tv_sec;
+    endTime.tv_nsec = tv.tv_nsec;
     pthread_mutex_unlock(&lock);
 }
 
@@ -62,7 +65,7 @@ int SparkPlugSensor::update() {
 // Wrapper function for using logger. Checks if logger exists and prepends LOG_PREFIX to any message.
 bool SparkPlugSensor::log(std::string _msg) {
     if(logger != NULL) {
-        std::string msg = LOG_PREFIX;
+        std::string msg = SPARKPLUGSENSOR_LOG_PREFIX;
         msg.append(_msg);
 
         return logger->writeln(msg);
