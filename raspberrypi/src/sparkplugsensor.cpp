@@ -48,7 +48,7 @@ void SparkPlugSensor::isr(void) {
     // FIXME: don't use clock_gettime in ISR
     cnt++;
     timespec tv;
-    clock_gettime(CLOCK_MONOTONIC, tv);
+    clock_gettime(CLOCK_MONOTONIC, &tv);
     endTime.tv_sec = tv.tv_sec;
     endTime.tv_nsec = tv.tv_nsec;
     pthread_mutex_unlock(&lock);
