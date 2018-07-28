@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <cerrno>
 #include <string>
+#include <iostream>
 
 #include "wiringPi.h"
 #include "logger.h"
@@ -34,7 +35,7 @@ const std::string getCurrentDateTime();
 int main (int argc, char *argv[])
 {
   // Local variables
-  int result, i;
+  int result, i, j;
   Logger logger;
 
   // Make directories for storing data files. Owner has read, write, execute permission. Everyone else has read permission.
@@ -42,6 +43,12 @@ int main (int argc, char *argv[])
   if (result != 0) {
     if (errno != EEXIST) {
       // Something weird happened
+      std::cout << "Failed to make directory: " << BASE_DIR << ". ERRNO: " << errno << std::endl;
+    }
+    if (errno == EACCES) {
+      // Don't have permission to access directory.
+      std::cout << "Could not access " << BASE_DIR << " (Permission Denied)." << std::endl;
+      std::cout << "Change ownership or access permissions of directory to appropriate user." << std::endl;
     }
   }
 
@@ -61,7 +68,7 @@ int main (int argc, char *argv[])
   logFile.append(currentDate);
   logFile.append(".log");
   logger.open(logFile);
-  logger.write("Log File Created");
+  logger.writeln("Log File Created");
 
   // Init wiringPi
   wiringPiSetup();
@@ -73,12 +80,19 @@ int main (int argc, char *argv[])
 
   // FIXME: Some way to shutdown cleanly would be good
   timespec lastTime, curTime;
-  while (true) {
+  j = 0;
+  while (j < 10) {
+      j++;
+      std::cout << "Looping..." << std::endl;
+      logger.writeln("Logging...");
       // Update all sensors
       for (i = 0; i < sensorCnt; i++) {
           sensors[i]->update();
       }
   }
+
+  std::cout << "Cleanup." << std::endl;
+  logger.writeln("Cleanup.");
 
   // Cleanup sensor classes
   for (i = 0; i < sensorCnt; i++) {
@@ -90,7 +104,7 @@ int main (int argc, char *argv[])
 
 // Copied from stackoverflow thread:
 // https://stackoverflow.com/questions/997946/how-to-get-current-time-and-date-in-c
-// Get current date/time, format is YYYY-MM-DD.HH:mm:ss
+// Get current date/time, format is YYYY-MM-DD_HH-mm-ss
 const std::string getCurrentDateTime() {
   time_t        now = time(NULL);
   struct tm     tstruct;
@@ -100,7 +114,7 @@ const std::string getCurrentDateTime() {
   tstruct = *localtime(&now);
   // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
   // for more information about date/time format
-  strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+  strftime(buf, sizeof(buf), "%Y-%m-%d_%H-%M-%S", &tstruct);
 
   result = buf;
   return result;

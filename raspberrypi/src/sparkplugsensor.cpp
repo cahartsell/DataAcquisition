@@ -4,10 +4,13 @@
 
 #define SPARKPLUGSENSOR_LOG_PREFIX  "SPARK_PLUG_SENSOR: "
 
-#include <pthread.h>
+#include "pthread.h"
 #include <time.h>
 #include "sparkplugsensor.h"
 #include "wiringPi.h"
+
+// Declare instance of SparkPlugSensor
+SparkPlugSensor *SparkPlugSensor::instance;
 
 // SparkPlugSensor class
 SparkPlugSensor::SparkPlugSensor(Logger *_logger, int pin) {
