@@ -33,7 +33,7 @@ bool Logger::write(std::string str) {
 
 bool Logger::writeln(std::string str) {
     if (logStream.is_open()) {
-        logStream << str;
+        logStream << str << '\n';
         return 0;
     }
     return -1;

@@ -4,10 +4,13 @@
 
 #define SPARKPLUGSENSOR_LOG_PREFIX  "SPARK_PLUG_SENSOR: "
 
-#include <pthread.h>
+#include "pthread.h"
 #include <time.h>
 #include "sparkplugsensor.h"
 #include "wiringPi.h"
+
+// Declare instance of SparkPlugSensor
+SparkPlugSensor *SparkPlugSensor::instance;
 
 // SparkPlugSensor class
 SparkPlugSensor::SparkPlugSensor(Logger *_logger, int pin) {
@@ -48,7 +51,7 @@ void SparkPlugSensor::isr(void) {
     // FIXME: don't use clock_gettime in ISR
     cnt++;
     timespec tv;
-    clock_gettime(CLOCK_MONOTONIC, tv);
+    clock_gettime(CLOCK_MONOTONIC, &tv);
     endTime.tv_sec = tv.tv_sec;
     endTime.tv_nsec = tv.tv_nsec;
     pthread_mutex_unlock(&lock);

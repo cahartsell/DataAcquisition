@@ -15,13 +15,14 @@
  ********************************************************/
 class SensorBase {
 public:
-    SensorBase(); // Default constructor
-    SensorBase(Logger *_logger); // No pin constructor
-    SensorBase(Logger *_logger, int pin_number); // Single pin constructor
-    SensorBase(Logger *_logger, std::vector<int> pins); // Multiple pin constructor
+    SensorBase() {}; // Default constructor
 
-    virtual int setup();
-    virtual int update();
+    //SensorBase(Logger *_logger); // No pin constructor
+    //SensorBase(Logger *_logger, int pin_number); // Single pin constructor
+    //SensorBase(Logger *_logger, std::vector<int> pins); // Multiple pin constructor
+
+    virtual int setup() {};
+    virtual int update() {};
 
 protected:
     Logger *logger;

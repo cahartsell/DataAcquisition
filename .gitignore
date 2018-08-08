@@ -1,9 +1,13 @@
+# CLion/PyCharm IDE files
 .idea/
 
+# Vagrant files
 .vagrant/
 
+# Build directories
 cmake-build*/
 build/
+build*
 
 # Log files
 *.log
