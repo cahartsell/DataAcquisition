@@ -4,13 +4,11 @@ import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.os.ParcelUuid;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -24,22 +22,22 @@ import android.widget.TextView;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 
-public class BluetoothList extends AppCompatActivity {
+public class BluetoothActivity extends AppCompatActivity {
     private ListView BTListView;
     private ArrayAdapter<String> listAdapter;
     SingletonBluetoothData sBTData = SingletonBluetoothData.getInstance();
-    BluetoothAdapter btAdapter;
-    BluetoothSocket btSocket;
+    private BluetoothAdapter btAdapter;
+    private BluetoothSocket btSocket;
     Set<BluetoothDevice> pairedDevices;
     ArrayList<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
     ArrayList<String> deviceNames = new ArrayList<String>();
     ArrayList<String> deviceAddresses = new ArrayList<String>();
     TextView statusTV;
     Button bottomLeftButton, bottomRightButton;
+    Intent intent = new Intent();
 
     // Constants. This seems like the wrong place
     int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 41568;
@@ -89,35 +87,18 @@ public class BluetoothList extends AppCompatActivity {
         sBTData.setBtAdapter(btAdapter);
         if (btAdapter == null) {
             Log.e(TAG, "Failed to enable bluetooth adapter");
+            setResult(RESULT_CANCELED, intent);
+            finish();
         }
         pairedDevices = btAdapter.getBondedDevices();
 
-        // Register for broadcasts when a device is discovered.
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(BluetoothDevice.ACTION_FOUND);
-        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
-        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-
-        registerReceiver(btReceiver, filter);
-
+        // Request Coarse location access (GPS based probably)
         // I have no idea why this is required to make BT discovery work, but it is
         ActivityCompat.requestPermissions(this,
                 new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
                 MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
 
-        // Discover nearby devices
-        if (btAdapter.isDiscovering()) {
-            btAdapter.cancelDiscovery();
-        }
-        boolean result = btAdapter.startDiscovery();
-        if (result == false) {
-            String tempStr = "Failed to start bluetooth discovery.";
-            statusTV.setText(tempStr);
-            Log.e(TAG, tempStr);
-        }
-
-        // Display paired device names
+        // Setup item list to display paired device names
         listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, deviceNames);
         BTListView.setAdapter( listAdapter );
 
@@ -177,7 +158,8 @@ public class BluetoothList extends AppCompatActivity {
                     Log.w(TAG, tempStr);
                     tempStr = "BT socket creation failed";
                     statusTV.setText(tempStr);
-                    return;
+                    setResult(RESULT_CANCELED, intent);
+                    finish();
                 }
 
                 try{
@@ -188,36 +170,72 @@ public class BluetoothList extends AppCompatActivity {
                     Log.w(TAG, tempStr);
                     tempStr = "BT socket connection failed";
                     statusTV.setText(tempStr);
-                    return;
+                    setResult(RESULT_CANCELED, intent);
+                    finish();
                 }
 
                 if (btSocket.isConnected()){
                     // If we successfully connected, set BT Socket and return to Main Activity
                     sBTData.setBtSocket(btSocket);
                     Log.d(TAG, "BT Socket connected successfully");
+                    setResult(RESULT_OK, intent);
                     finish();
                 }
                 else{
                     Log.d(TAG, "BT Socket connecting failed");
                     statusTV.setText("Failed to connect.");
+                    setResult(RESULT_CANCELED, intent);
+                    finish();
                 }
             }
         });
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    protected void onResume() {
+        super.onResume();
 
+        // Register for broadcasts when a device is discovered.
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothDevice.ACTION_FOUND);
+        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        registerReceiver(btReceiver, filter);
+
+        // Start nearby device discovery
+        if (btAdapter.isDiscovering()) {
+            btAdapter.cancelDiscovery();
+        }
+        boolean result = btAdapter.startDiscovery();
+        if (result == false) {
+            String tempStr = "Failed to start bluetooth discovery.";
+            statusTV.setText(tempStr);
+            Log.e(TAG, tempStr);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        // Stop device discovery
         if (btAdapter.isDiscovering()) {
             btAdapter.cancelDiscovery();
         }
 
+        // Unregister for broadcasts when activity is paused
         unregisterReceiver(btReceiver);
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
+
     // Create a BroadcastReceiver
-    private final android.content.BroadcastReceiver btReceiver = new android.content.BroadcastReceiver() {
+    private final BroadcastReceiver btReceiver = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
 
@@ -281,8 +299,7 @@ public class BluetoothList extends AppCompatActivity {
             Log.d(TAG, "Bluetooth already enabled.");
             if (tv != null) {
                 tv.setText("Bluetooth enabled.");
-            }
-        }
+            }        }
 
         return adapter;
     }

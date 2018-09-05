@@ -1,9 +1,15 @@
 package com.example.charlie.test;
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
+import android.content.IntentFilter;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.TextInputEditText;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
@@ -16,15 +22,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
     // Class variables
@@ -33,8 +35,10 @@ public class MainActivity extends AppCompatActivity {
     FloatingActionButton fab;
     TextInputEditText inputMsg;
     Button sendButton;
-    SingletonBluetoothData sBTData = SingletonBluetoothData.getInstance();
     LineChart chart;
+    List<String> dataFileNames, logFileNames, pyLogFileNames;
+    BluetoothInterface btInterface;
+    Thread btThread;
 
     // Constants
     int CONNECT_TO_BT_DEVICE = 1354;
@@ -52,90 +56,94 @@ public class MainActivity extends AppCompatActivity {
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        // Find UI elements
         inputMsg = (TextInputEditText) findViewById(R.id.inputMsg);
+        tv = (TextView) findViewById(R.id.sample_text);
 
-        // Testing chart functinality
-        chart = (LineChart) findViewById(R.id.chart);
-        List<Entry> entries = new ArrayList<Entry>();
-        entries.add(new Entry(0,0));
-        entries.add(new Entry(1,1));
-        entries.add(new Entry(2,4));
-        entries.add(new Entry(4,4));
-        LineDataSet dataSet = new LineDataSet(entries, "Label");
-        dataSet.setColor(Color.BLACK);
-        dataSet.setValueTextColor(Color.BLUE);
-        LineData lineData = new LineData(dataSet);
-        chart.setData(lineData);
-        chart.invalidate();
-
+        // Set ultra dope title
         if(toolbar != null) {
-            // Dope title
             toolbar.setTitle("Swagger Central");
         }
 
+        // Find and configure message send button
         sendButton = (Button) findViewById(R.id.sendButton);
         sendButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public  void onClick(View view){
-                if (sBTData.socketConnected()){
-                    OutputStream outStream = sBTData.getBtOutStream();
-                    String inputStr = inputMsg.getText().toString();
-                    try {
-                        outStream.write(inputStr.getBytes());
-                    } catch (IOException e){
-                        tv.setText("Failed sending message.");
-                        Log.w(TAG, "Failed sending input message.");
-                    }
+                if (!btInterface.connected()) {
+                    String tempStr = "Bluetooth not connected!";
+                    tv.setText(tempStr);
+                } else {
+                    btInterface.sendString( inputMsg.getText().toString() );
                 }
             }
         });
 
+        // Find and configure FAB click event
         fab = (FloatingActionButton)  findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             View.OnClickListener snackbarOnClick = new View.OnClickListener(){
                 @Override
                 public void onClick(View view) {
-                    startBluetoothListActivity();
+                    startBluetoothActivity();
                 }
             };
 
             @Override
             public void onClick(View view) {
                 Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", snackbarOnClick).show();
+                        .setAction("Bluetooth", snackbarOnClick).show();
             }
         });
 
-        // Example of a call to a native method
-        tv = (TextView) findViewById(R.id.sample_text);
-        tv.setText(stringFromJNI());
-
-        // Start List activity
-        /*Intent intent = new Intent(this, BluetoothList.class);
-        startActivityForResult(intent, CONNECT_TO_BT_DEVICE);*/
+        // Setup bluetooth interface and thread
+        btInterface = new BluetoothInterface();
+        btThread = new Thread( new Runnable() {
+            public void run() {
+               btInterface.listen();
+            }
+        });
     }
 
-    public void startBluetoothListActivity(){
-        // Start List activity
-        // FIXME: This don't work
-        Intent intent = new Intent(this, BluetoothList.class);
-        startActivityForResult(intent, CONNECT_TO_BT_DEVICE);
+    @Override
+    protected void onResume(){
+        // Register for broadcasts from Bluetooth Interface
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothInterface.ACTION_FILENAMES_UPDATED);
+        LocalBroadcastManager.getInstance(this).registerReceiver(btInterfaceReceiver, filter);
+
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause(){
+        // Unregister for broadcasts from Bluetooth Interface
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(btInterfaceReceiver);
+
+        super.onPause();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CONNECT_TO_BT_DEVICE){
-            if (requestCode == RESULT_OK){
+            if (resultCode == RESULT_OK){
                 // BT Enable succeeded
-                tv.setText("BT Enabled.");
+                String tempStr = "Bluetooth connected.";
+                Log.i(TAG, tempStr);
+                tv.setText(tempStr);
+                btThread.start();
+                // TODO: Recv file names
             }
-            else if (requestCode == RESULT_CANCELED){
+            else if (resultCode == RESULT_CANCELED){
                 // BT Enable failed
-                Log.w(TAG, "Failed to enable bluetooth.");
-                tv.setText("Failed to enable BT.");
+                String tempStr = "Failed to connect Bluetooth.";
+                Log.w(TAG, tempStr);
+                tv.setText(tempStr);
             }
             else{
-                // Unknown result
+                String tempStr = "Unknown result code when connecting Bluetooth.";
+                Log.e(TAG, tempStr);
+                tv.setText(tempStr);
             }
         }
     }
@@ -162,9 +170,58 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    // Convenience function for starting BluetoothActivity
+    public void startBluetoothActivity(){
+        Intent intent = new Intent(MainActivity.this, BluetoothActivity.class);
+        startActivityForResult(intent, CONNECT_TO_BT_DEVICE);
+    }
+
+    // BroadcastReceiver for Intents from bluetooth interface class
+    private final BroadcastReceiver btInterfaceReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+
+            if (BluetoothInterface.ACTION_FILENAMES_UPDATED.equals(action)) {
+                //******** DEBUG *************/
+                Log.w(TAG, "GOT FILENAMES UPDATE");
+                // Filenames have been refreshed. Update and display.
+            }
+        }
+    };
+
     /**
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.
      */
     public native String stringFromJNI();
+
+//    private boolean recvFileNames(){
+//        if (sBTData.socketConnected()) {
+//            try {
+//                if (inStream.available() > 0) {
+//                    byte[] buf = new byte[1024];
+//                    int size;
+//                    size = inStream.read(buf);
+//                    buf[size] = '\n';
+//                    String str = new String(buf, "UTF-8");
+//                    Log.d(TAG, str);
+//                    String temp = "GOT: " + str;
+//                    tv.setText(temp);
+//                    return true;
+//                }
+//                else{
+//                    Log.w(TAG, "No data to read.");
+//                    return false;
+//                }
+//            } catch (IOException e) {
+//                tv.setText("Failed reading message.");
+//                Log.e(TAG, "Failed reading BT message.");
+//                return false;
+//            }
+//        } else {
+//            tv.setText("NOPE");
+//            return true;
+//        }
+//    }
 }
