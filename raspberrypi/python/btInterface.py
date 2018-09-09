@@ -2,7 +2,8 @@ from bluetooth import *
 import os
 import errno
 import time
-import message
+import messages
+from CircularBuffer import CircularBuffer
 
 # Path for IPC communication.
 # '@' symbol makes this an unnamed socket path (doesn't exist on disk)
@@ -17,6 +18,7 @@ DAS_LOG_DIR = "./"
 #PYTHON_DIRECTORY = DAS_BASE_DIR + "python/"
 PYTHON_DIRECTORY = "./"
 MY_UUID = "94f39d29-7d6d-435d-973b-fba39e49d4ee"
+
 
 def main():
     # Make sure python directory exists
@@ -63,6 +65,7 @@ def main():
                       #protocols=[OBEX_UUID])
 
     # Main program loop
+    circBuf = CircularBuffer(messages.MAX_FRAME_SIZE * 2)
     while True:
         logFile.write("Waiting for connection on RFCOMM channel %d\n" % channel)
 
@@ -70,27 +73,53 @@ def main():
         (clientSock, clientInfo) = serverSock.accept()
         logFile.write("Accepted client connection from address " + str(clientInfo[0]) + " port: " + str(clientInfo[1]) + '\n')
 
-        # TODO: Send client latest info
-        fileNames = discoverFiles()
-        #sendFileNames(clientSock, fileNames)
-
         while True:
-            try:
-                data = clientSock.recv(1024)
-                print(data)
-                if data == b'files':
-                    print("Sending file names...")
-                    sendFileNames(clientSock, fileNames)
-                    print("done")
+            # Max bluetooth message size should be 1024 or less
+            # data = clientSock.recv(1024)
+            # print(data)
+            # if data == b'files':
+            #     print("Sending file names...")
+            #     sendFileNames(clientSock, fileNames)
+            #     print("done")
+            # if len(data) == 0:
+            #     # Client disconnected
+            #     logFile.write("Client at address " + str(clientInfo[0]) + " port " + str(clientInfo[1]) + ' has disconnected \n')
+            #     clientSock.close()
+            #     break
+
+            # If a valid message is not available, wait for more data
+            # Otherwise, process existing message before receiving more data
+            if not (messages.hasValidMessage(circBuf)):
+                # Read data from BT input stream
+                try:
+                    data = clientSock.recv(1024)
+                    print(data)
+                except IOError:
+                    logFile.write("ERROR: IOError when reading from bluetooth socket")
+                    continue
+
                 if len(data) == 0:
                     # Client disconnected
                     logFile.write("Client at address " + str(clientInfo[0]) + " port " + str(clientInfo[1]) + ' has disconnected \n')
                     clientSock.close()
                     break
 
-                # TODO: Handle commands from client here
-            except IOError:
-                pass
+                # Append read buffer to circular buffer
+                print("Writing to buffer")
+                circBuf.write(data)
+
+            # It's possible we only received a partial message in last read.
+            if not(messages.hasValidMessage(circBuf)):
+                continue
+
+            # Do something based on received message type
+            msgType = messages.popTypeHeader(circBuf)
+            print("MSG_TYPE: ", str(msgType))
+            if msgType == messages.FILE_NAMES_REQ:
+                print("Sending file names...")
+                logFile.write("INFO: Received file names request")
+                fileNames = discoverFiles()
+                sendFileNames(clientSock, fileNames)
 
         # Placeholder. should be able to end loop somehow
         if False:
@@ -134,34 +163,34 @@ def discoverFiles():
 def sendFileNames(sock, file_names):
     try:
         # Send start of file names delimiter
-        sock.send(message.FILE_NAMES_HDR.to_bytes(message.DELIMITER_SIZE, byteorder='big'))
+        sock.send(messages.FILE_NAMES_HDR.to_bytes(messages.DELIMITER_SIZE, byteorder='big'))
 
         # Send data files
         data_files = file_names.get('data')
         if data_files is not None:
             for file_name in data_files:
-                sock.send(message.DATA_FILE_NAME.to_bytes(message.DELIMITER_SIZE, byteorder='big'))
+                sock.send(messages.DATA_FILE_NAME.to_bytes(messages.DELIMITER_SIZE, byteorder='big'))
                 sock.send(file_name.encode("UTF-8"))
-                sock.send(message.NULL_TERM.to_bytes(message.DELIMITER_SIZE, byteorder='big'))
+                sock.send(messages.NULL_TERM.to_bytes(messages.DELIMITER_SIZE, byteorder='big'))
 
         # Send log files
         log_files = file_names.get('log')
         if log_files is not None:
             for file_name in log_files:
-                sock.send(message.LOG_FILE_NAME.to_bytes(message.DELIMITER_SIZE, byteorder='big'))
+                sock.send(messages.LOG_FILE_NAME.to_bytes(messages.DELIMITER_SIZE, byteorder='big'))
                 sock.send(file_name.encode("UTF-8"))
-                sock.send(message.NULL_TERM.to_bytes(message.DELIMITER_SIZE, byteorder='big'))
+                sock.send(messages.NULL_TERM.to_bytes(messages.DELIMITER_SIZE, byteorder='big'))
 
         # Send python log files
         py_log_files = file_names.get('py_log')
         if py_log_files is not None:
             for file_name in py_log_files:
-                sock.send(message.PY_LOG_FILE_NAME.to_bytes(message.DELIMITER_SIZE, byteorder='big'))
+                sock.send(messages.PY_LOG_FILE_NAME.to_bytes(messages.DELIMITER_SIZE, byteorder='big'))
                 sock.send(file_name.encode("UTF-8"))
-                sock.send(message.NULL_TERM.to_bytes(message.DELIMITER_SIZE, byteorder='big'))
+                sock.send(messages.NULL_TERM.to_bytes(messages.DELIMITER_SIZE, byteorder='big'))
 
         # Send end of file names delimiter
-        sock.send(message.FILE_NAMES_FTR.to_bytes(message.DELIMITER_SIZE, byteorder='big'))
+        sock.send(messages.FILE_NAMES_FTR.to_bytes(messages.DELIMITER_SIZE, byteorder='big'))
 
     except Exception as e:
         # Don't want to crash if something goes wrong. Probably should do something better than this though
