@@ -1,17 +1,19 @@
 package com.example.charlie.test;
 
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.TextInputEditText;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.view.ViewPager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -23,22 +25,29 @@ import android.view.MenuItem;
 
 import com.github.mikephil.charting.charts.LineChart;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.List;
+import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+        implements ItemFragment.OnListFragmentInteractionListener{
     // Class variables
     Toolbar toolbar;
     TextView tv;
     FloatingActionButton fab;
-    TextInputEditText inputMsg;
     Button sendButton;
+    ImageButton refreshButton;
     LineChart chart;
-    List<String> dataFileNames, logFileNames, pyLogFileNames;
+    RecyclerView filesList;
+    RecyclerView.LayoutManager listLayoutManager;
+    RecyclerView.Adapter listAdapter;
+    //private ArrayAdapter<String> filesListAdapter;
+    ArrayList<String> dataFileNames = new ArrayList<String>();
+    ArrayList<String> logFileNames = new ArrayList<String>();
+    ArrayList<String> pyLogFileNames = new ArrayList<String>();
     BluetoothInterface btInterface;
     Thread btThread;
+
+    FileNamesPagerAdapter mFileNamesPagerAdapter;
+    ViewPager mViewPager;
 
     // Constants
     int CONNECT_TO_BT_DEVICE = 1354;
@@ -53,60 +62,80 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Find various UI elements
+        tv = (TextView) findViewById(R.id.status_text);
+
+        // Configure toolbar
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        // Find UI elements
-        inputMsg = (TextInputEditText) findViewById(R.id.inputMsg);
-        tv = (TextView) findViewById(R.id.sample_text);
-
         // Set ultra dope title
-        if(toolbar != null) {
+        if (toolbar != null) {
             toolbar.setTitle("Swagger Central");
         }
 
-        // Find and configure message send button
-        sendButton = (Button) findViewById(R.id.sendButton);
-        sendButton.setOnClickListener(new View.OnClickListener(){
+        // View pager setup
+        mFileNamesPagerAdapter = new FileNamesPagerAdapter(getSupportFragmentManager());
+        mViewPager = (ViewPager) findViewById(R.id.files_view_pager);
+        mViewPager.setAdapter(mFileNamesPagerAdapter);
+
+        // Find and configure refresh button
+        refreshButton = (ImageButton) findViewById(R.id.refresh_button);
+        refreshButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public  void onClick(View view){
+            public void onClick(View view) {
                 if (!btInterface.connected()) {
                     String tempStr = "Bluetooth not connected!";
                     tv.setText(tempStr);
                 } else {
-                    btInterface.sendString( inputMsg.getText().toString() );
+                    btInterface.requestFilenames();
                 }
             }
         });
 
+        // Find and configure message send button
+//        sendButton = (Button) findViewById(R.id.sendButton);
+//        sendButton.setOnClickListener(new View.OnClickListener(){
+//            @Override
+//            public  void onClick(View view){
+//                if (!btInterface.connected()) {
+//                    String tempStr = "Bluetooth not connected!";
+//                    tv.setText(tempStr);
+//                } else {
+//                    btInterface.sendString( inputMsg.getText().toString() );
+//                }
+//            }
+//        });
+
         // Find and configure FAB click event
-        fab = (FloatingActionButton)  findViewById(R.id.fab);
+        fab = (FloatingActionButton) findViewById(R.id.bt_fab);
         fab.setOnClickListener(new View.OnClickListener() {
-            View.OnClickListener snackbarOnClick = new View.OnClickListener(){
-                @Override
-                public void onClick(View view) {
-                    startBluetoothActivity();
-                }
-            };
+//            View.OnClickListener snackbarOnClick = new View.OnClickListener() {
+//                @Override
+//                public void onClick(View view) {
+//                    startBluetoothActivity();
+//                }
+//            };
 
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Bluetooth", snackbarOnClick).show();
+                startBluetoothActivity();
+//                Snackbar.make(view, "Find and connect to device", Snackbar.LENGTH_LONG)
+//                        .setAction("Bluetooth", snackbarOnClick).show();
             }
         });
 
         // Setup bluetooth interface and thread
         btInterface = new BluetoothInterface();
-        btThread = new Thread( new Runnable() {
+        btThread = new Thread(new Runnable() {
             public void run() {
-               btInterface.listen();
+                btInterface.listen();
             }
         });
     }
 
     @Override
-    protected void onResume(){
+    protected void onResume() {
         // Register for broadcasts from Bluetooth Interface
         IntentFilter filter = new IntentFilter();
         filter.addAction(BluetoothInterface.ACTION_FILENAMES_UPDATED);
@@ -116,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onPause(){
+    protected void onPause() {
         // Unregister for broadcasts from Bluetooth Interface
         LocalBroadcastManager.getInstance(this).unregisterReceiver(btInterfaceReceiver);
 
@@ -125,22 +154,20 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CONNECT_TO_BT_DEVICE){
-            if (resultCode == RESULT_OK){
+        if (requestCode == CONNECT_TO_BT_DEVICE) {
+            if (resultCode == RESULT_OK) {
                 // BT Enable succeeded
                 String tempStr = "Bluetooth connected.";
                 Log.i(TAG, tempStr);
                 tv.setText(tempStr);
                 btThread.start();
                 // TODO: Recv file names
-            }
-            else if (resultCode == RESULT_CANCELED){
+            } else if (resultCode == RESULT_CANCELED) {
                 // BT Enable failed
                 String tempStr = "Failed to connect Bluetooth.";
                 Log.w(TAG, tempStr);
                 tv.setText(tempStr);
-            }
-            else{
+            } else {
                 String tempStr = "Unknown result code when connecting Bluetooth.";
                 Log.e(TAG, tempStr);
                 tv.setText(tempStr);
@@ -164,6 +191,7 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            tv.setText("There are no settings you stupid idiot.");
             return true;
         }
 
@@ -171,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Convenience function for starting BluetoothActivity
-    public void startBluetoothActivity(){
+    public void startBluetoothActivity() {
         Intent intent = new Intent(MainActivity.this, BluetoothActivity.class);
         startActivityForResult(intent, CONNECT_TO_BT_DEVICE);
     }
@@ -186,6 +214,13 @@ public class MainActivity extends AppCompatActivity {
                 //******** DEBUG *************/
                 Log.w(TAG, "GOT FILENAMES UPDATE");
                 // Filenames have been refreshed. Update and display.
+                dataFileNames.clear();
+                logFileNames.clear();
+                pyLogFileNames.clear();
+                btInterface.getDataFileNames(dataFileNames);
+                btInterface.getLogFileNames(logFileNames);
+                btInterface.getPyLogFileNames(pyLogFileNames);
+                mFileNamesPagerAdapter.notifyDataSetChanged();
             }
         }
     };
@@ -196,32 +231,49 @@ public class MainActivity extends AppCompatActivity {
      */
     public native String stringFromJNI();
 
-//    private boolean recvFileNames(){
-//        if (sBTData.socketConnected()) {
-//            try {
-//                if (inStream.available() > 0) {
-//                    byte[] buf = new byte[1024];
-//                    int size;
-//                    size = inStream.read(buf);
-//                    buf[size] = '\n';
-//                    String str = new String(buf, "UTF-8");
-//                    Log.d(TAG, str);
-//                    String temp = "GOT: " + str;
-//                    tv.setText(temp);
-//                    return true;
-//                }
-//                else{
-//                    Log.w(TAG, "No data to read.");
-//                    return false;
-//                }
-//            } catch (IOException e) {
-//                tv.setText("Failed reading message.");
-//                Log.e(TAG, "Failed reading BT message.");
-//                return false;
-//            }
-//        } else {
-//            tv.setText("NOPE");
-//            return true;
-//        }
-//    }
+    public void onListFragmentInteraction(String filename){
+        /* TODO: Write code to handle when item is selected in fragment */
+    }
+
+    public class FileNamesPagerAdapter extends FragmentPagerAdapter {
+        ArrayList<ItemFragment> listFragments;
+        ArrayList<String> pageTitles;
+        private final int COLUMN_COUNT = 1;
+
+        public FileNamesPagerAdapter(FragmentManager fm) {
+            super(fm);
+
+            listFragments = new ArrayList<ItemFragment>();
+            listFragments.add(ItemFragment.newInstance(COLUMN_COUNT, dataFileNames));
+            listFragments.add(ItemFragment.newInstance(COLUMN_COUNT, logFileNames));
+            listFragments.add(ItemFragment.newInstance(COLUMN_COUNT, pyLogFileNames));
+
+            pageTitles = new ArrayList<String>();
+            pageTitles.add("Data Files");
+            pageTitles.add("Log Files");
+            pageTitles.add("Python Log Files");
+        }
+
+        @Override
+        public Fragment getItem(int i) {
+            return listFragments.get(i);
+        }
+
+        @Override
+        public int getCount() {
+            return listFragments.size();
+        }
+
+        @Override
+        public CharSequence getPageTitle(int position) {
+            return pageTitles.get(position);
+        }
+
+        @Override
+        public int getItemPosition(Object object) {
+            // Causes adapter to reload all Fragments when notifyDataSetChanged is called.
+            // Seems inefficient, but it'll ride
+            return POSITION_NONE;
+        }
+    }
 }

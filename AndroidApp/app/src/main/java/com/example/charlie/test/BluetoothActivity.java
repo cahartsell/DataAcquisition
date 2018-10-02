@@ -36,7 +36,7 @@ public class BluetoothActivity extends AppCompatActivity {
     ArrayList<String> deviceNames = new ArrayList<String>();
     ArrayList<String> deviceAddresses = new ArrayList<String>();
     TextView statusTV;
-    Button bottomLeftButton, bottomRightButton;
+    Button bottomLeftButton, refreshButton;
     Intent intent = new Intent();
 
     // Constants. This seems like the wrong place
@@ -61,10 +61,10 @@ public class BluetoothActivity extends AppCompatActivity {
         BTListView = (ListView) findViewById( R.id.listview );
 
         // Configure refresh button
-        bottomRightButton = (Button) findViewById(R.id.bottomRightButton);
+        refreshButton = (Button) findViewById(R.id.refreshButton);
         String brText = "Refresh List";
-        bottomRightButton.setText(brText);
-        bottomRightButton.setOnClickListener(new View.OnClickListener() {
+        refreshButton.setText(brText);
+        refreshButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 // Clear lists
