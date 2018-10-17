@@ -35,7 +35,7 @@ public class SingletonBluetoothData{
         this.btAdapter = btAdapter;
     }
 
-    // Get and Set functions for BT Socket
+    //    // Get and Set functions for BT Socket
     public BluetoothSocket getBtSocket() {
         return btSocket;
     }

@@ -18,9 +18,15 @@ public class Messages {
     public static final int LOG_FILE_NAME           = 0x00000003;
     public static final int PY_LOG_FILE_NAME        = 0x00000004;
     public static final int FILE_NAMES_FTR          = 0x00000005;
+    public static final int FILE_CONTENT_HDR        = 0x00000006;
+    public static final int FILE_CONTENT_FTR        = 0x00000007;
+    public static final int FILE_CONTENT_CHUNK      = 0x00000008;
+    public static final int FILE_NOT_FOUND          = 0x00000009;
+
 
     // Requests
     public static final int FILE_NAMES_REQ          = 0x00010001;
+    public static final int FILE_CONTENT_REQ        = 0x00010002;
 
     // Scan circular byte buffer and find the first null terminator message delimiter
     // Null term should be two 0 bytes together
@@ -47,12 +53,17 @@ public class Messages {
     // Assumes that the next 4 bytes in the buffer are the type delimiter. Otherwise, type will be invalid.
     // Type bytes should be in BIG_ENDIAN form
     public static int readTypeHeader(CircularArray<Byte> circBuf) {
-        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(4);
+        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(Messages.DELIMITER_SIZE);
         byteBuffer.order(ByteOrder.BIG_ENDIAN);
-        byteBuffer.put(circBuf.get(0));
-        byteBuffer.put(circBuf.get(1));
-        byteBuffer.put(circBuf.get(2));
-        byteBuffer.put(circBuf.get(3));
+
+        // Bounds check
+        if (circBuf.size() < Messages.DELIMITER_SIZE) {
+            return -1;
+        }
+
+        for (int i = 0; i < Messages.DELIMITER_SIZE; i++) {
+            byteBuffer.put(circBuf.get(i));
+        }
         byteBuffer.flip();
         return byteBuffer.getInt();
     }
@@ -88,9 +99,13 @@ public class Messages {
         return data;
     }
 
+    // FIXME: Make these functions check bounds
     // Convenience function - read message type header and remove it from buffer
     public static int popTypeHeader(CircularArray<Byte> circBuf) {
         int type = readTypeHeader(circBuf);
+        if (circBuf.size() < Messages.DELIMITER_SIZE) {
+            return -1;
+        }
         circBuf.removeFromStart(Messages.DELIMITER_SIZE);
         return type;
     }

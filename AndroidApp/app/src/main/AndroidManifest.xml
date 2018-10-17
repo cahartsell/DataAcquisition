@@ -5,8 +5,10 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
+        android:name=".MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -16,7 +18,7 @@
         <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -27,7 +29,15 @@
         <activity
             android:name=".BluetoothActivity"
             android:label="@string/title_activity_bluetooth_list"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme" />
+        <activity
+            android:name=".DownloadFileActivity"
+            android:label="@string/title_activity_download_file"
+            android:theme="@style/AppTheme" />
+        <activity
+            android:name=".DataSelectionActivity"
+            android:label="@string/title_activity_data_selection"
+            android:theme="@style/AppTheme"/>
     </application>
 
 </manifest>

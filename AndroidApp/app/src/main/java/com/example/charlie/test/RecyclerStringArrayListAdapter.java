@@ -1,18 +1,16 @@
 package com.example.charlie.test;
 
 import android.support.v7.widget.RecyclerView;
-import android.text.Layout;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import org.w3c.dom.Text;
-
 import java.util.ArrayList;
 
 public class RecyclerStringArrayListAdapter extends RecyclerView.Adapter<RecyclerStringArrayListAdapter.ViewHolder> {
     private ArrayList<String> mDataset;
+    private ItemListFragment.OnListFragmentInteractionListener mListener;
 
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
@@ -27,9 +25,9 @@ public class RecyclerStringArrayListAdapter extends RecyclerView.Adapter<Recycle
     }
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public RecyclerStringArrayListAdapter(ArrayList<String> myDataset, ItemFragment.OnListFragmentInteractionListener listener) {
+    public RecyclerStringArrayListAdapter(ArrayList<String> myDataset, ItemListFragment.OnListFragmentInteractionListener listener) {
         this.mDataset = myDataset;
-        /* TODO: Write listener code */
+        this.mListener = listener;
     }
 
     // Create new views (invoked by the layout manager)
@@ -43,11 +41,20 @@ public class RecyclerStringArrayListAdapter extends RecyclerView.Adapter<Recycle
 
     // Replace the contents of a view (invoked by the layout manager)
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
-        // - get element from your dataset at this position
-        // - replace the contents of the view with that element
+    public void onBindViewHolder(ViewHolder holder, final int position) {
         holder.primaryStringView.setText(mDataset.get(position));
 
+        // Set on click listener
+        holder.primaryStringView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (null != mListener) {
+                    // Notify the active callbacks interface (the activity, if the
+                    // fragment is attached to one) that an item has been selected.
+                    mListener.onListFragmentInteraction(mDataset.get(position));
+                }
+            }
+        });
     }
 
     // Return the size of your dataset (invoked by the layout manager)

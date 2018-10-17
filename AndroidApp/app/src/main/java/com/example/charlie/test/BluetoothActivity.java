@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -39,10 +40,11 @@ public class BluetoothActivity extends AppCompatActivity {
     Button bottomLeftButton, refreshButton;
     Intent intent = new Intent();
 
-    // Constants. This seems like the wrong place
+    // Constants. Probably a better way to do this
+    private static final String TAG = "BluetoothListActivity";
     int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 41568;
     int REQUEST_ENABLE_BT = 777;
-    private static final String TAG = "BluetoothListActivity";
+    public static final String ACTION_BLUETOOTH_SOCKET_CONNECTED = "bluetooth_activity.action.BLUETOOTH_SOCKET_CONNECTED";
     String SERVER_UUID_STRING = "94f39d29-7d6d-435d-973b-fba39e49d4ee";
     UUID SERVER_UUID = UUID.fromString(SERVER_UUID_STRING);
 
@@ -82,7 +84,7 @@ public class BluetoothActivity extends AppCompatActivity {
             }
         });
 
-        // Setup Bluetooth
+        // Setup Bluetooth adapter
         btAdapter = enableBluetooth(statusTV);
         sBTData.setBtAdapter(btAdapter);
         if (btAdapter == null) {
@@ -92,7 +94,7 @@ public class BluetoothActivity extends AppCompatActivity {
         }
         pairedDevices = btAdapter.getBondedDevices();
 
-        // Request Coarse location access (GPS based probably)
+        // Request Coarse location access
         // I have no idea why this is required to make BT discovery work, but it is
         ActivityCompat.requestPermissions(this,
                 new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
@@ -107,8 +109,8 @@ public class BluetoothActivity extends AppCompatActivity {
         BTListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                /* Can skip pairing and use an insecure connection instead.
-                   This is suitable for microcontroller since no user interface easily available.
+                /*  FIXME: Figure out how to make pairing work for secure connection.
+                            For now, can skip pairing and use an insecure connection instead.
                 if ( !pairedDevices.contains(discoveredDevices.get(i)) ) {
                     // Chosen device has not been paired yet. Have to do that first.
                     Intent enableBtIntent = new Intent(BluetoothAdapter.);
@@ -117,6 +119,7 @@ public class BluetoothActivity extends AppCompatActivity {
                 } */
 
                 BluetoothDevice selectedDevice = discoveredDevices.get(i);
+                Log.i(TAG, "Opening connection to bluetooth device: ".concat(selectedDevice.getName()));
                 /*ParcelUuid uuids[] = selectedDevice.getUuids();
                 if(uuids == null) {
                     Log.w(TAG, "No UUIDs found on selected device.");
@@ -140,8 +143,10 @@ public class BluetoothActivity extends AppCompatActivity {
                 if (sBTData.getBtSocket() != null){
                     try{
                         sBTData.getBtSocket().close();
+                        Log.i(TAG, "Closing existing bluetooth socket");
                     } catch (IOException e) {
                         sBTData.setBtSocket(null);
+                        Log.w(TAG, "Exception while closing bluetooth socket: ".concat(e.getMessage()));
                     }
                 }
 
@@ -165,24 +170,28 @@ public class BluetoothActivity extends AppCompatActivity {
                 try{
                     btSocket.connect();
                 } catch (IOException e) {
-                    String tempStr = "Failed when connecting socket to device: ";
-                    tempStr = tempStr.concat(selectedDevice.getAddress());
-                    Log.w(TAG, tempStr);
-                    tempStr = "BT socket connection failed";
+                    Log.w(TAG, "Failed when connecting socket to device: ".concat(selectedDevice.getAddress()));
+                    String tempStr = "BT socket connection failed";
                     statusTV.setText(tempStr);
                     setResult(RESULT_CANCELED, intent);
                     finish();
                 }
 
                 if (btSocket.isConnected()){
-                    // If we successfully connected, set BT Socket and return to Main Activity
+                    // If we successfully connected, set BT Socket and return
                     sBTData.setBtSocket(btSocket);
-                    Log.d(TAG, "BT Socket connected successfully");
+                    Log.i(TAG, "Bluetooth socket connected successfully");
+
+                    // Send local broadcast
+                    intent = new Intent(BluetoothActivity.ACTION_BLUETOOTH_SOCKET_CONNECTED);
+                    LocalBroadcastManager.getInstance(MyApplication.get_instance()).sendBroadcast(intent);
+
+                    // Set result for calling activity and return
                     setResult(RESULT_OK, intent);
                     finish();
                 }
                 else{
-                    Log.d(TAG, "BT Socket connecting failed");
+                    Log.w(TAG, "Bluetooth socket connecting failed");
                     statusTV.setText("Failed to connect.");
                     setResult(RESULT_CANCELED, intent);
                     finish();
@@ -318,6 +327,7 @@ public class BluetoothActivity extends AppCompatActivity {
             }
             else{
                 // Unknown result
+                Log.e(TAG, "Unknown result code when enabling Bluetooth");
             }
         }
     }

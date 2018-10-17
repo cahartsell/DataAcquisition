@@ -27,7 +27,7 @@ public class GraphView extends AppCompatActivity {
         entries.add(new Entry((float)2.0, (float)2.0));
         entries.add(new Entry((float)3.0, (float)0.0));
 
-        LineDataSet dataSet = new LineDataSet(entries, "Dater");
+        LineDataSet dataSet = new LineDataSet(entries, "Data");
         LineData lineData = new LineData(dataSet);
         chart.setData(lineData);
         chart.invalidate();

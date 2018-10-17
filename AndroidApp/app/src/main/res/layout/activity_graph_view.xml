@@ -6,9 +6,20 @@
     android:layout_height="match_parent"
     tools:context="com.example.charlie.test.GraphView">
 
-    <com.github.mikephil.charting.charts.LineChart
-        android:id="@+id/chart"
+    <android.support.constraint.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content">
+
+        <include
+            android:id="@+id/include"
+            layout="@layout/content_graph"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_anchorGravity="left|bottom"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="parent" />
+    </android.support.constraint.ConstraintLayout>
 
 </android.support.constraint.ConstraintLayout>

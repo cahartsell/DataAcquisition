@@ -1,22 +1,21 @@
 package com.example.charlie.test;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.ViewPager;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -25,33 +24,30 @@ import android.view.MenuItem;
 
 import com.github.mikephil.charting.charts.LineChart;
 
+import java.io.File;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity
-        implements ItemFragment.OnListFragmentInteractionListener{
+        implements ItemListFragment.OnListFragmentInteractionListener{
     // Class variables
     Toolbar toolbar;
     TextView tv;
     FloatingActionButton fab;
-    Button sendButton;
     ImageButton refreshButton;
     LineChart chart;
-    RecyclerView filesList;
-    RecyclerView.LayoutManager listLayoutManager;
-    RecyclerView.Adapter listAdapter;
-    //private ArrayAdapter<String> filesListAdapter;
-    ArrayList<String> dataFileNames = new ArrayList<String>();
-    ArrayList<String> logFileNames = new ArrayList<String>();
-    ArrayList<String> pyLogFileNames = new ArrayList<String>();
+    ArrayList<String> localFileNames = new ArrayList<String>();
     BluetoothInterface btInterface;
     Thread btThread;
-
+    Runnable btThreadRunnable;
     FileNamesPagerAdapter mFileNamesPagerAdapter;
     ViewPager mViewPager;
 
     // Constants
-    int CONNECT_TO_BT_DEVICE = 1354;
     private static final String TAG = "MainActivity";
+    int THREAD_JOIN_TIMEOUT_MS = 10;
+    int CONNECT_TO_BT_DEVICE = 1354;
+    int CHOOSE_DOWNLOAD_FILE = 56498;
+    int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1920;
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -61,10 +57,22 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        // Find various UI elements
+        // Set view and find various UI elements
+        setContentView(R.layout.activity_main);
         tv = (TextView) findViewById(R.id.status_text);
+
+        // Register for broadcasts from Bluetooth Interface
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothInterface.ACTION_LISTENER_STOPPED);
+        filter.addAction(BluetoothInterface.ACTION_FILE_DOWNLOAD_COMPLETE);
+        filter.addAction(BluetoothActivity.ACTION_BLUETOOTH_SOCKET_CONNECTED);
+        LocalBroadcastManager.getInstance(this).registerReceiver(btInterfaceReceiver, filter);
+
+        // Request any necessary permissions from user
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
 
         // Configure toolbar
         toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -84,30 +92,12 @@ public class MainActivity extends AppCompatActivity
         refreshButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!btInterface.connected()) {
-                    String tempStr = "Bluetooth not connected!";
-                    tv.setText(tempStr);
-                } else {
-                    btInterface.requestFilenames();
-                }
+                refreshLocalFileNames();
             }
         });
 
-        // Find and configure message send button
-//        sendButton = (Button) findViewById(R.id.sendButton);
-//        sendButton.setOnClickListener(new View.OnClickListener(){
-//            @Override
-//            public  void onClick(View view){
-//                if (!btInterface.connected()) {
-//                    String tempStr = "Bluetooth not connected!";
-//                    tv.setText(tempStr);
-//                } else {
-//                    btInterface.sendString( inputMsg.getText().toString() );
-//                }
-//            }
-//        });
-
         // Find and configure FAB click event
+        // TODO: What should this button do here?
         fab = (FloatingActionButton) findViewById(R.id.bt_fab);
         fab.setOnClickListener(new View.OnClickListener() {
 //            View.OnClickListener snackbarOnClick = new View.OnClickListener() {
@@ -119,56 +109,72 @@ public class MainActivity extends AppCompatActivity
 
             @Override
             public void onClick(View view) {
-                startBluetoothActivity();
+                Intent intent = new Intent(MainActivity.this, DownloadFileActivity.class);
+                startActivityForResult(intent, CHOOSE_DOWNLOAD_FILE);
 //                Snackbar.make(view, "Find and connect to device", Snackbar.LENGTH_LONG)
 //                        .setAction("Bluetooth", snackbarOnClick).show();
             }
         });
 
-        // Setup bluetooth interface and thread
-        btInterface = new BluetoothInterface();
-        btThread = new Thread(new Runnable() {
+        // Setup bluetooth interface and thread for running listener loop
+        btInterface = BluetoothInterface.getInstance();
+        btThreadRunnable = new Runnable() {
             public void run() {
                 btInterface.listen();
             }
-        });
+        };
     }
 
-    @Override
-    protected void onResume() {
-        // Register for broadcasts from Bluetooth Interface
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(BluetoothInterface.ACTION_FILENAMES_UPDATED);
-        LocalBroadcastManager.getInstance(this).registerReceiver(btInterfaceReceiver, filter);
+//    @Override
+//    protected void onCreate() {
+//        // Register for broadcasts from Bluetooth Interface
+//        IntentFilter filter = new IntentFilter();
+//        filter.addAction(BluetoothInterface.ACTION_LISTENER_STOPPED);
+//        filter.addAction(BluetoothInterface.ACTION_FILE_DOWNLOAD_COMPLETE);
+//        filter.addAction(BluetoothActivity.ACTION_BLUETOOTH_SOCKET_CONNECTED);
+//        LocalBroadcastManager.getInstance(this).registerReceiver(btInterfaceReceiver, filter);
+//
+//        super.onCreate();
+//    }
 
-        super.onResume();
-    }
-
     @Override
-    protected void onPause() {
+    protected void onDestroy() {
         // Unregister for broadcasts from Bluetooth Interface
         LocalBroadcastManager.getInstance(this).unregisterReceiver(btInterfaceReceiver);
 
-        super.onPause();
+        super.onDestroy();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CONNECT_TO_BT_DEVICE) {
             if (resultCode == RESULT_OK) {
-                // BT Enable succeeded
+                // BT Enable succeeded. Start bluetooth thread
                 String tempStr = "Bluetooth connected.";
                 Log.i(TAG, tempStr);
                 tv.setText(tempStr);
-                btThread.start();
-                // TODO: Recv file names
             } else if (resultCode == RESULT_CANCELED) {
                 // BT Enable failed
+                // FIXME: This could also be the user exiting
                 String tempStr = "Failed to connect Bluetooth.";
                 Log.w(TAG, tempStr);
                 tv.setText(tempStr);
             } else {
                 String tempStr = "Unknown result code when connecting Bluetooth.";
+                Log.e(TAG, tempStr);
+                tv.setText(tempStr);
+            }
+        }
+
+        if (requestCode == CHOOSE_DOWNLOAD_FILE) {
+            if (resultCode == RESULT_OK) {
+                String filename = data.getStringExtra("filename");
+                Log.i(TAG, "User selected file for download: ".concat(filename));
+                btInterface.requestFileContent(filename);
+            } else if (resultCode == RESULT_CANCELED) {
+                Log.i(TAG, "Choose download file activity was canceled.");
+            } else {
+                String tempStr = "Unknown result code when selecting a file for download.";
                 Log.e(TAG, tempStr);
                 tv.setText(tempStr);
             }
@@ -204,26 +210,65 @@ public class MainActivity extends AppCompatActivity
         startActivityForResult(intent, CONNECT_TO_BT_DEVICE);
     }
 
-    // BroadcastReceiver for Intents from bluetooth interface class
+    // BroadcastReceiver for result Intents from bluetooth interface class
     private final BroadcastReceiver btInterfaceReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
 
-            if (BluetoothInterface.ACTION_FILENAMES_UPDATED.equals(action)) {
-                //******** DEBUG *************/
-                Log.w(TAG, "GOT FILENAMES UPDATE");
-                // Filenames have been refreshed. Update and display.
-                dataFileNames.clear();
-                logFileNames.clear();
-                pyLogFileNames.clear();
-                btInterface.getDataFileNames(dataFileNames);
-                btInterface.getLogFileNames(logFileNames);
-                btInterface.getPyLogFileNames(pyLogFileNames);
-                mFileNamesPagerAdapter.notifyDataSetChanged();
+            if (BluetoothInterface.ACTION_LISTENER_STOPPED.equals(action)) {
+                Log.w(TAG, "Bluetooth listener shutdown");
+                try {
+                    btThread.join(THREAD_JOIN_TIMEOUT_MS);
+                } catch (InterruptedException e) {
+                    Log.e(TAG, e.getMessage());
+                }
+            }
+
+            if (BluetoothInterface.ACTION_FILE_DOWNLOAD_COMPLETE.equals(action)) {
+                refreshLocalFileNames();
+            }
+
+            if (BluetoothActivity.ACTION_BLUETOOTH_SOCKET_CONNECTED.equals(action)) {
+                // BT Enable succeeded. Start bluetooth thread
+                String tempStr = "Bluetooth connected.";
+                Log.i(TAG, tempStr);
+                tv.setText(tempStr);
+                btThread = new Thread(btThreadRunnable);
+                btThread.start();
+                // TODO: Does android require any special thread cleanup? And when exactly is this thread destroyed?
             }
         }
     };
+
+    private void refreshLocalFileNames() {
+        File[] files;
+        File dir;
+
+        // Find directory where app data is stored
+        try {
+            dir = MyApplication.get_instance().getExternalFilesDir(null);
+            if (dir == null) {
+                Log.e(TAG, "getExternalFilesDir returned null when refreshing local file names.");
+                return;
+            }
+            files = dir.listFiles();
+        } catch (NullPointerException e) {
+            Log.e(TAG, e.getMessage());
+            return;
+        }
+
+        // Add all non-directory files to file names list
+        this.localFileNames.clear();
+        for (File file : files) {
+            if (!file.isDirectory()) {
+                this.localFileNames.add(file.getName());
+            }
+        }
+
+        // Refresh recycler view
+        mFileNamesPagerAdapter.notifyDataSetChanged();
+    }
 
     /**
      * A native method that is implemented by the 'native-lib' native library,
@@ -232,26 +277,25 @@ public class MainActivity extends AppCompatActivity
     public native String stringFromJNI();
 
     public void onListFragmentInteraction(String filename){
-        /* TODO: Write code to handle when item is selected in fragment */
+        if (filename.toLowerCase().endsWith(".dat")) {
+            // TODO: Handle data file
+        }
+        /* TODO: Write handler for when other local file type is selected */
     }
 
     public class FileNamesPagerAdapter extends FragmentPagerAdapter {
-        ArrayList<ItemFragment> listFragments;
+        ArrayList<ItemListFragment> listFragments;
         ArrayList<String> pageTitles;
         private final int COLUMN_COUNT = 1;
 
         public FileNamesPagerAdapter(FragmentManager fm) {
             super(fm);
 
-            listFragments = new ArrayList<ItemFragment>();
-            listFragments.add(ItemFragment.newInstance(COLUMN_COUNT, dataFileNames));
-            listFragments.add(ItemFragment.newInstance(COLUMN_COUNT, logFileNames));
-            listFragments.add(ItemFragment.newInstance(COLUMN_COUNT, pyLogFileNames));
+            listFragments = new ArrayList<ItemListFragment>();
+            listFragments.add(ItemListFragment.newInstance(COLUMN_COUNT, localFileNames));
 
             pageTitles = new ArrayList<String>();
-            pageTitles.add("Data Files");
-            pageTitles.add("Log Files");
-            pageTitles.add("Python Log Files");
+            pageTitles.add("Local Files");
         }
 
         @Override

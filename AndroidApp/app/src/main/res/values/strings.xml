@@ -3,5 +3,9 @@
     <string name="greeting">Howdy Partner</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_bt_list">BtList</string>
-    <string name="title_activity_bluetooth_list">BluetoothList</string>
+    <string name="title_activity_bluetooth_list">Bluetooth List</string>
+    <string name="title_activity_bluetooth">Download File</string>
+    <string name="title_activity_download_file">Download File</string>
+    <string name="title_activity_data_selection">DataSelectionActivity</string>
+    <string name="refresh_text">Refresh</string>
 </resources>
