@@ -2,6 +2,7 @@ import CircularBuffer
 
 MAX_FRAME_SIZE          = 1024
 DELIMITER_SIZE          = 4
+NETWORK_BYTE_ORDER      = 'big'
 
 # Responses
 NULL_TERM               = 0x00000000
@@ -10,9 +11,31 @@ DATA_FILE_NAME          = 0x00000002
 LOG_FILE_NAME           = 0x00000003
 PY_LOG_FILE_NAME        = 0x00000004
 FILE_NAMES_FTR          = 0x00000005
+FILE_CONTENT_HDR        = 0x00000006
+FILE_CONTENT_FTR        = 0x00000007
+FILE_CONTENT_CHUNK      = 0x00000008
+FILE_NOT_FOUND          = 0x00000009
 
 # Requests
 FILE_NAMES_REQ          = 0x00010001
+FILE_CONTENT_REQ        = 0x00010002
+
+################# Byte versions of message delimiters #######################
+# Responses
+NULL_TERM_B               = (0x00000000).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
+FILE_NAMES_HDR_B          = (0x00000001).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
+DATA_FILE_NAME_B          = (0x00000002).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
+LOG_FILE_NAME_B           = (0x00000003).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
+PY_LOG_FILE_NAME_B        = (0x00000004).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
+FILE_NAMES_FTR_B          = (0x00000005).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
+FILE_CONTENT_HDR_B        = (0x00000006).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
+FILE_CONTENT_FTR_B        = (0x00000007).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
+FILE_CONTENT_CHUNK_B      = (0x00000008).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
+FILE_NOT_FOUND_B          = (0x00000009).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
+
+# Requests
+FILE_NAMES_REQ_B          = (0x00010001).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
+FILE_CONTENT_REQ_B        = (0x00010002).to_bytes(DELIMITER_SIZE, byteorder=NETWORK_BYTE_ORDER)
 
 
 # Scan circular byte buffer and find the first null terminator message delimiter
@@ -68,15 +91,15 @@ def popTypeHeader(circBuf):
 
 # Convenience function - read message data and remove it from buffer (including NULL_TERM)
 def popMsgData(circBuf):
-    # Read data portion of message
-    buf = readMsgData(circBuf)
+    # Find NULL_TERM
+    termStartIdx = findNullTerm(circBuf)
+    if termStartIdx < 0:
+        return None
 
-    # Remove data and NULL_TERM from buffer
-    if buf is not None:
-        circBuf.removeFromStart(len(buf))
-        circBuf.removeFromStart(DELIMITER_SIZE)
-
-    return buf
+    # Pop data portion of message and NULL_TERM
+    tempBuf = circBuf.popToIdx(termStartIdx)
+    circBuf.popSize(DELIMITER_SIZE)
+    return tempBuf
 
 # Convenience function - combines getting message data and decoding UTF-8
 def popMsgDataAsUTF8(circBuf):

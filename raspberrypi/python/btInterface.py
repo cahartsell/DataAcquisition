@@ -102,6 +102,7 @@ def main():
                     # Client disconnected
                     logFile.write("Client at address " + str(clientInfo[0]) + " port " + str(clientInfo[1]) + ' has disconnected \n')
                     clientSock.close()
+                    circBuf.clear()
                     break
 
                 # Append read buffer to circular buffer
@@ -109,6 +110,7 @@ def main():
                 circBuf.write(data)
 
             # It's possible we only received a partial message in last read.
+            # FIXME: Possible to get stuck in a loop here if garbage gets into buffer
             if not(messages.hasValidMessage(circBuf)):
                 continue
 
@@ -120,6 +122,11 @@ def main():
                 logFile.write("INFO: Received file names request")
                 fileNames = discoverFiles()
                 sendFileNames(clientSock, fileNames)
+            elif msgType == messages.FILE_CONTENT_REQ:
+                print("Sending file data...")
+                temp_filename = messages.popMsgDataAsUTF8(circBuf)
+                logFile.write("INFO: Received file content request for file name: {}".format(temp_filename))
+                sendFileContent(clientSock, temp_filename)
 
         # Placeholder. should be able to end loop somehow
         if False:
@@ -169,6 +176,7 @@ def sendFileNames(sock, file_names):
         data_files = file_names.get('data')
         if data_files is not None:
             for file_name in data_files:
+                # FIXME: Send's should be grouped into a single send
                 sock.send(messages.DATA_FILE_NAME.to_bytes(messages.DELIMITER_SIZE, byteorder='big'))
                 sock.send(file_name.encode("UTF-8"))
                 sock.send(messages.NULL_TERM.to_bytes(messages.DELIMITER_SIZE, byteorder='big'))
@@ -193,12 +201,72 @@ def sendFileNames(sock, file_names):
         sock.send(messages.FILE_NAMES_FTR.to_bytes(messages.DELIMITER_SIZE, byteorder='big'))
 
     except Exception as e:
-        # Don't want to crash if something goes wrong. Probably should do something better than this though
+        # FIXME: Don't want to crash if something goes wrong. Probably should do something better than this though
         print("WHOOPS")
         print(e)
         return -1
 
     return 0
+
+
+def sendFileContent(sock, filename):
+    # TODO: Write this
+    # Make sure file exists
+    full_filename = None
+    filenames = discoverFiles()
+    if filename in filenames['data']:
+        full_filename = os.path.join(DAS_DATA_DIR, filename)
+    elif filename in filenames['log']:
+        full_filename = os.path.join(DAS_DATA_DIR, filename)
+    elif filename in filenames['py_log']:
+        full_filename = os.path.join(DAS_DATA_DIR, filename)
+
+    # File not found response
+    if full_filename is None:
+        buf = bytearray()
+        buf.extend(messages.FILE_NOT_FOUND_B)
+        buf.extend(filename.encode("UTF-8"))
+        buf.extend(messages.NULL_TERM_B)
+        sock.send(bytes(buf))
+        # TODO: Log error
+        return -1
+
+    # Send file in chunks
+    # Header message echos back the requested filename
+    buf = bytearray()
+    buf.extend(messages.FILE_CONTENT_HDR_B)
+    buf.extend(filename.encode("UTF-8"))
+    buf.extend(messages.NULL_TERM_B)
+    sock.send(bytes(buf))
+
+    # TODO: Error handling
+    # Init variables
+    sequence_cnt = 0
+    chunk_size = messages.MAX_FRAME_SIZE - (messages.DELIMITER_SIZE * 3)
+    # Open file in binary reading mode
+    with open(filename, 'rb') as fp:
+        # Read until end of file (no more than chunk_size bytes in each read)
+        chunk_data = fp.read(chunk_size)
+        while chunk_data != b'':
+            # Format and send data chunk message
+            buf.clear()
+            buf.extend(messages.FILE_CONTENT_CHUNK_B)
+            buf.extend(sequence_cnt.to_bytes(messages.DELIMITER_SIZE, byteorder=messages.NETWORK_BYTE_ORDER))
+            buf.extend(chunk_data)
+            buf.extend(messages.NULL_TERM_B)
+            sock.send(bytes(buf))
+
+            # Update variables for next iteration
+            sequence_cnt += 1
+            chunk_data = fp.read(chunk_size)
+
+    # End of file terminator message includes the total number of chunks sent and echos filename
+    buf.clear()
+    buf.extend(messages.FILE_CONTENT_FTR_B)
+    buf.extend(sequence_cnt.to_bytes(messages.DELIMITER_SIZE, byteorder=messages.NETWORK_BYTE_ORDER))
+    buf.extend(filename.encode("UTF-8"))
+    buf.extend(messages.NULL_TERM_B)
+    sock.send(bytes(buf))
 
 
 # Run the program if this is the main file

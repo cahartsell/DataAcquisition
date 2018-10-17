@@ -25,6 +25,11 @@ class CircularBuffer:
     def freeSpace(self):
         return self.size - self.usedSpace()
 
+    def clear(self):
+        self.head = 0
+        self.tail = 0
+        return 0
+
     def write(self, _bytes):
         if len(_bytes) > self.freeSpace():
             return -1
@@ -107,8 +112,10 @@ class CircularBuffer:
 
         return retVal
 
+    # Return data from current head to spcified index (non-inclusive)
+    # Set head pointer to index
     def popToIdx(self, idx):
-        newHead = idx + 1
+        newHead = idx
 
         # Check for wrap around 0
         if self.head > newHead:
