@@ -53,10 +53,9 @@ public class BluetoothActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bluetooth_list);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
 
         // Set title
-        getSupportActionBar().setTitle("Discovered Bluetooth Devices");
+        toolbar.setTitle("Discovered Bluetooth Devices");
 
         // Find status notification text view
         statusTV = (TextView) findViewById(R.id.statusTextView);

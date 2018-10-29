@@ -51,7 +51,6 @@ public class DownloadFileActivity extends AppCompatActivity
 
         // Configure toolbar
         toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
         // Set ultra dope title
         if (toolbar != null) {
             toolbar.setTitle("Swagger Central");
@@ -77,7 +76,7 @@ public class DownloadFileActivity extends AppCompatActivity
         });
 
         // Find and configure FAB click event
-        fab = (FloatingActionButton) findViewById(R.id.bt_fab);
+        fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -186,7 +185,7 @@ public class DownloadFileActivity extends AppCompatActivity
         }
     };
 
-    public void onListFragmentInteraction(String filename){
+    public void onListFragmentInteraction(Integer position, String filename){
         /* Return filename to calling activity as intent */
         String tempStr = "User selected filename: ".concat(filename);
         Log.i(TAG, tempStr);

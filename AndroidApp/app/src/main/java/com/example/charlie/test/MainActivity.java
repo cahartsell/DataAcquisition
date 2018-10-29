@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity
     Toolbar toolbar;
     TextView tv;
     FloatingActionButton fab;
-    ImageButton refreshButton;
+    ImageButton refreshButton, viewButton, shareButton, downloadButton;
     LineChart chart;
     ArrayList<String> localFileNames = new ArrayList<String>();
     BluetoothInterface btInterface;
@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity
 
         // Configure toolbar
         toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        //setSupportActionBar(toolbar);
         // Set ultra dope title
         if (toolbar != null) {
             toolbar.setTitle("Swagger Central");
@@ -86,6 +86,7 @@ public class MainActivity extends AppCompatActivity
         mFileNamesPagerAdapter = new FileNamesPagerAdapter(getSupportFragmentManager());
         mViewPager = (ViewPager) findViewById(R.id.files_view_pager);
         mViewPager.setAdapter(mFileNamesPagerAdapter);
+        refreshLocalFileNames(); 
 
         // Find and configure refresh button
         refreshButton = (ImageButton) findViewById(R.id.refresh_button);
@@ -97,8 +98,7 @@ public class MainActivity extends AppCompatActivity
         });
 
         // Find and configure FAB click event
-        // TODO: What should this button do here?
-        fab = (FloatingActionButton) findViewById(R.id.bt_fab);
+        fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
 //            View.OnClickListener snackbarOnClick = new View.OnClickListener() {
 //                @Override
@@ -109,10 +109,41 @@ public class MainActivity extends AppCompatActivity
 
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, DownloadFileActivity.class);
-                startActivityForResult(intent, CHOOSE_DOWNLOAD_FILE);
+                Intent intent = new Intent(MainActivity.this, BluetoothActivity.class);
+                startActivityForResult(intent, CONNECT_TO_BT_DEVICE);
+
 //                Snackbar.make(view, "Find and connect to device", Snackbar.LENGTH_LONG)
 //                        .setAction("Bluetooth", snackbarOnClick).show();
+            }
+        });
+
+        // Find and configure view file button
+        viewButton = (ImageButton) findViewById(R.id.view_button);
+        viewButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // TODO: This button should tell activity which file user selected (or files if multiple)
+                Intent intent = new Intent(MainActivity.this, DataSelectionActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        // Find and configure download file button
+        downloadButton = (ImageButton) findViewById(R.id.download_button);
+        downloadButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, DownloadFileActivity.class);
+                startActivityForResult(intent, CHOOSE_DOWNLOAD_FILE);
+            }
+        });
+
+        // Find and configure share button
+        shareButton = (ImageButton) findViewById(R.id.share_button);
+        shareButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // TODO: Share button should share things
             }
         });
 
@@ -276,9 +307,11 @@ public class MainActivity extends AppCompatActivity
      */
     public native String stringFromJNI();
 
-    public void onListFragmentInteraction(String filename){
+    public void onListFragmentInteraction(Integer position, String filename){
         if (filename.toLowerCase().endsWith(".dat")) {
-            // TODO: Handle data file
+            Intent intent = new Intent(MainActivity.this, DataSelectionActivity.class);
+            intent.putExtra("filename", filename);
+            startActivity(intent);
         }
         /* TODO: Write handler for when other local file type is selected */
     }
