@@ -5,8 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context="com.example.charlie.test.MainActivity"
-    tools:showIn="@layout/activity_main">
+    tools:context="com.example.charlie.test.DownloadFileActivity"
+    tools:showIn="@layout/activity_download_file">
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab"
@@ -24,8 +24,8 @@
         app:elevation="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintDimensionRatio="h,1:1"
-        app:layout_constraintEnd_toStartOf="@+id/view_button"
-        app:layout_constraintStart_toEndOf="@+id/share_button"
+        app:layout_constraintEnd_toStartOf="@+id/cancel_button"
+        app:layout_constraintStart_toEndOf="@+id/refresh_button"
         app:srcCompat="@android:drawable/stat_sys_data_bluetooth" />
 
     <TextView
@@ -57,14 +57,14 @@
         android:background="@color/colorPrimary"
         android:contentDescription="@string/refresh_text"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/share_button"
+        app:layout_constraintEnd_toStartOf="@+id/fab"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/fab"
         app:layout_constraintVertical_bias="0.0"
         app:srcCompat="@android:drawable/stat_notify_sync" />
 
     <ImageButton
-        android:id="@+id/download_button"
+        android:id="@+id/cancel_button"
         android:layout_width="55dp"
         android:layout_height="55dp"
         android:layout_marginBottom="16dp"
@@ -76,46 +76,10 @@
         android:contentDescription="@string/refresh_text"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/view_button"
-        app:layout_constraintTop_toTopOf="@+id/fab"
-        app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@android:drawable/stat_sys_download" />
-
-    <ImageButton
-        android:id="@+id/view_button"
-        android:layout_width="55dp"
-        android:layout_height="55dp"
-        android:layout_marginBottom="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="16dp"
-        android:layout_marginStart="8dp"
-        android:background="@color/colorPrimary"
-        android:contentDescription="@string/refresh_text"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/download_button"
         app:layout_constraintStart_toEndOf="@+id/fab"
         app:layout_constraintTop_toTopOf="@+id/fab"
         app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@android:drawable/ic_menu_view" />
-
-    <ImageButton
-        android:id="@+id/share_button"
-        android:layout_width="55dp"
-        android:layout_height="55dp"
-        android:layout_marginBottom="16dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginRight="8dp"
-        android:layout_marginStart="16dp"
-        android:background="@color/colorPrimary"
-        android:contentDescription="@string/refresh_text"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/fab"
-        app:layout_constraintStart_toEndOf="@+id/refresh_button"
-        app:layout_constraintTop_toTopOf="@+id/fab"
-        app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@android:drawable/ic_menu_share" />
+        app:srcCompat="@android:drawable/ic_menu_close_clear_cancel" />
 
     <android.support.v4.view.ViewPager
         android:id="@+id/files_view_pager"

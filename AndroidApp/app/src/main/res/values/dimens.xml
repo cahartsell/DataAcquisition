@@ -2,4 +2,8 @@
     <dimen name="fab_margin">16dp</dimen>
     <dimen name="text_margin">16dp</dimen>
     <dimen name="app_bar_height">180dp</dimen>
+    <dimen name="row_padding_vertical">16dp</dimen>
+    <dimen name="activity_horizontal_margin">8dp</dimen>
+    <dimen name="heading_medium_text_size">18sp</dimen>
+    <dimen name="margin_medium">16dp</dimen>
 </resources>

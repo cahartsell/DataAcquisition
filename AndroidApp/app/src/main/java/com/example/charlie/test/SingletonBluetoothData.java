@@ -23,8 +23,8 @@ public class SingletonBluetoothData{
     // Bluetooth objects
     private BluetoothAdapter btAdapter = null;
     private BluetoothSocket btSocket = null;
-    private OutputStream btOutStream = null;
-    private InputStream btInStream = null;
+    public OutputStream outStream = null;
+    public InputStream inStream = null;
 
     // Get and Set functions for BT Adapter
     public BluetoothAdapter getBtAdapter() {
@@ -35,33 +35,39 @@ public class SingletonBluetoothData{
         this.btAdapter = btAdapter;
     }
 
-    // Get and Set functions for BT Socket
+    //    // Get and Set functions for BT Socket
     public BluetoothSocket getBtSocket() {
         return btSocket;
     }
 
     public void setBtSocket(BluetoothSocket btSocket) {
         this.btSocket = btSocket;
-        if(btSocket.isConnected()) {
+        if (btSocket != null && btSocket.isConnected()) {
             try {
-                this.btOutStream = btSocket.getOutputStream();
-                this.btInStream = btSocket.getInputStream();
+                this.outStream = btSocket.getOutputStream();
+                this.inStream = btSocket.getInputStream();
             } catch (IOException e) {
-                this.btInStream = null;
-                this.btOutStream = null;
+                this.inStream = null;
+                this.outStream = null;
             }
+        } else {
+            this.inStream = null;
+            this.outStream = null;
         }
     }
 
     public boolean socketConnected() {
-        return this.btSocket.isConnected();
+        if (this.btSocket == null)
+            return false;
+        else
+            return this.btSocket.isConnected();
     }
 
-    public OutputStream getBtOutStream() {
-        return btOutStream;
+    public OutputStream getOutStream() {
+        return outStream;
     }
 
-    public InputStream getBtInStream() {
-        return btInStream;
+    public InputStream getInStream() {
+        return inStream;
     }
 }

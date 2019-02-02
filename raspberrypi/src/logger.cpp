@@ -5,6 +5,7 @@
 #include <fstream>
 #include "logger.h"
 
+// FIXME: Make this thread-safe just in case. Mutex around logStream should be fine.
 // Constructor
 Logger::Logger() {
 }
