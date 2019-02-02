@@ -16,7 +16,7 @@
 class SparkPlugSensor: public SensorBase {
 public:
     // Public functions
-    SparkPlugSensor(Logger *_logger, int pin);
+    SparkPlugSensor(Logger *logger, int pin);
     ~SparkPlugSensor();
     int setup();   // overrides base class
     void isr();
@@ -30,7 +30,7 @@ public:
 
 private:
     // Private functions
-    bool log(std::string msg);
+    int log(std::string msg);
 
     // Private variables
     timespec startTime;
@@ -38,6 +38,7 @@ private:
     volatile int cnt;
     pthread_mutex_t lock;
     int inputPin;
+    int engineRpm;
 };
 
 

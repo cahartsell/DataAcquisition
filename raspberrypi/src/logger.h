@@ -11,9 +11,10 @@ class Logger {
 public:
     Logger();
     ~Logger();
-    bool open(std::string fileName);
-    bool write(std::string str);
-    bool writeln(std::string str);
+    int open(std::string fileName);
+    int write(std::string str);
+    int writeln(std::string str);
+    int writeBin(char *data, size_t data_size);
 private:
     std::fstream logStream;
     std::string logFile;

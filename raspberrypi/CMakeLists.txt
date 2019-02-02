@@ -19,7 +19,7 @@ file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.c" "src/*.cpp")
 #SET(CMAKE_EXE_LINKER_FLAGS "-Wl, --no-as-needed ${THREADTEST_COMPILE_FLAG}")
 
 # Main executable
-add_executable(DAS ${SOURCES})
+add_executable(DAS ${SOURCES} src/thermistor.cpp src/thermistor.h)
 # Component test executables
 add_executable(GPIO_test component_tests/raspberrypi_GPIO/gpio_test.c)
 add_executable(GPIO_speed_test component_tests/raspberrypi_GPIO/speed.c)

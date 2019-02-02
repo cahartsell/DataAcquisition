@@ -13,16 +13,10 @@
 SparkPlugSensor *SparkPlugSensor::instance;
 
 // SparkPlugSensor class
-SparkPlugSensor::SparkPlugSensor(Logger *_logger, int pin) {
+SparkPlugSensor::SparkPlugSensor(Logger *logger, int pin) {
     // Copy args to member variables
-    logger = _logger;
-    inputPin = pin;
-
-    // Create mutex - default settings
-    int result = pthread_mutex_init(&lock, NULL);
-    if (result != 0) {
-        this->log("Failed to create pthread mutex");
-    }
+    this->_logger = logger;
+    this->inputPin = pin;
 
     // Set this as the sole instance of SparkPlugSensor
     instance = this;
@@ -37,6 +31,14 @@ int SparkPlugSensor::setup() {
     // Setup pin mode and ISR function
     pinMode(inputPin, INPUT);
     wiringPiISR(inputPin, INT_EDGE_FALLING, _isr);
+
+    // Create mutex - default settings
+    int result = pthread_mutex_init(&(this->lock), NULL);
+    if (result != 0) {
+        this->log("Failed to create pthread mutex");
+    }
+
+    return 0;
 }
 
 void SparkPlugSensor::isr(void) {
@@ -58,6 +60,8 @@ void SparkPlugSensor::isr(void) {
 }
 
 int SparkPlugSensor::update() {
+    // TODO: Write this
+    // Calculate engine
     if (cnt > MIN_UPDATE_CNT) {
 
     }
@@ -66,12 +70,12 @@ int SparkPlugSensor::update() {
 }
 
 // Wrapper function for using logger. Checks if logger exists and prepends LOG_PREFIX to any message.
-bool SparkPlugSensor::log(std::string _msg) {
-    if(logger != NULL) {
+int SparkPlugSensor::log(std::string _msg) {
+    if(this->_logger != NULL) {
         std::string msg = SPARKPLUGSENSOR_LOG_PREFIX;
         msg.append(_msg);
 
-        return logger->writeln(msg);
+        return this->_logger->writeln(msg);
     } else {
         return false;
     }

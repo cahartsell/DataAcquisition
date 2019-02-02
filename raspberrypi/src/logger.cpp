@@ -16,13 +16,13 @@ Logger::~Logger() {
     }
 }
 
-bool Logger::open(std::string fileName) {
+int Logger::open(std::string fileName) {
     // Open file for input/output/append. Check that file is open
     logStream.open(fileName.c_str(), std::fstream::in | std::fstream::out | std::fstream::app);
     return logStream.is_open();
 }
 
-bool Logger::write(std::string str) {
+int Logger::write(std::string str) {
     if (logStream.is_open()) {
         logStream << str;
         return 0;
@@ -30,9 +30,17 @@ bool Logger::write(std::string str) {
     return -1;
 }
 
-bool Logger::writeln(std::string str) {
+int Logger::writeln(std::string str) {
     if (logStream.is_open()) {
         logStream << str << '\n';
+        return 0;
+    }
+    return -1;
+}
+
+int Logger::writeBin(char *data, size_t data_size) {
+    if (logStream.is_open()) {
+        logStream.write(data, data_size);
         return 0;
     }
     return -1;

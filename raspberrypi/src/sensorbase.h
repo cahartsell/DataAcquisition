@@ -25,7 +25,7 @@ public:
     virtual int update() {};
 
 protected:
-    Logger *logger;
+    Logger *_logger;
 };
 
 #endif //DAS_SENSORBASE_H
